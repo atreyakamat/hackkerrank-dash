@@ -8,18 +8,23 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
+export const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
 
-const DATA_DIR = path.join(__dirname, '../data');
+// In serverless environments (AWS Lambda / Netlify), use /tmp if local dir is read-only
+const DATA_DIR = process.env.NETLIFY ? '/tmp' : path.join(__dirname, '../data');
 const DB_FILE = path.join(DATA_DIR, 'profiles.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (e) {
+    // fallback
+  }
 }
 
 // Clean username extraction from raw input or URL (e.g. https://www.hackerrank.com/profile/atkamat1204)
@@ -595,6 +600,8 @@ if (fs.existsSync(DIST_DIR)) {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`HackerRank Dashboard Proxy Server running on port ${PORT}`);
-});
+if (!process.env.NETLIFY && process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`HackerRank Dashboard Proxy Server running on port ${PORT}`);
+  });
+}
