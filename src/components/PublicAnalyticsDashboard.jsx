@@ -10,20 +10,20 @@ import {
   TrendingUp, 
   ArrowRight,
   Sparkles,
-  GitCompare
+  GitCompare,
+  Activity
 } from 'lucide-react';
 import PrimaryPeerBarGraph from './PrimaryPeerBarGraph';
 import PeerDistributionHistogram from './PeerDistributionHistogram';
 import GroupDomainAnalytics from './GroupDomainAnalytics';
+import TrackedMembersDirectory from './TrackedMembersDirectory';
 import IndividualPeerAnalytics from './IndividualPeerAnalytics';
-import LeaderboardView from './LeaderboardView';
-import ComparisonView from './ComparisonView';
 
 export default function PublicAnalyticsDashboard({ 
   profiles = [], 
   selectedPeerUsername,
   onSelectPeer,
-  activePublicView = 'overview', // 'overview', 'leaderboard', 'compare'
+  activePublicView = 'overview',
   setActivePublicView
 }) {
   const selectedProfile = profiles.find(
@@ -46,7 +46,7 @@ export default function PublicAnalyticsDashboard({
   const avgSolved = totalPeers > 0 ? (totalSolved / totalPeers).toFixed(1) : 0;
   const totalStars = profiles.reduce((sum, p) => sum + (p.totalStars || 0), 0);
   
-  // Find highest performer strictly dynamically
+  // Find highest performer strictly dynamically based on solved count
   const sortedBySolved = [...profiles].sort((a, b) => (b.totalSolved || 0) - (a.totalSolved || 0));
   const topPeer = sortedBySolved[0];
 
@@ -138,6 +138,12 @@ export default function PublicAnalyticsDashboard({
       {/* 4. Group Domain & Language Analytics */}
       <GroupDomainAnalytics
         profiles={profiles}
+      />
+
+      {/* 5. Tracked Member Directory */}
+      <TrackedMembersDirectory
+        profiles={profiles}
+        onSelectPeer={onSelectPeer}
       />
 
     </div>

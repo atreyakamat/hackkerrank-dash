@@ -301,21 +301,32 @@ function saveLocalProfiles(profiles) {
   }
 }
 
+const getAuthHeaders = () => {
+  const token = sessionStorage.getItem('hr_admin_token');
+  const pwd = localStorage.getItem('hr_admin_pwd');
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (pwd) headers['x-admin-key'] = pwd;
+  return headers;
+};
+
 // API Service functions
 export const api = {
   // Admin password login
   async loginAdmin(password) {
-    if (password === 'Nanami@1304') {
-      try {
-        await axios.post(`${API_BASE}/admin/login`, { password }, { timeout: 4000 });
-      } catch (e) {
-        // Local auth fallback
+    try {
+      const res = await axios.post(`${API_BASE}/admin/login`, { password }, { timeout: 5000 });
+      if (res.data?.token) {
+        sessionStorage.setItem('hr_admin_token', res.data.token);
       }
-      sessionStorage.setItem('hr_admin_auth', 'true');
-      localStorage.setItem('hr_admin_pwd', password);
-      return true;
+    } catch (e) {
+      if (password !== 'Nanami@1304') {
+        throw new Error(e.response?.data?.error || 'Incorrect admin password');
+      }
     }
-    throw new Error('Incorrect admin password');
+    sessionStorage.setItem('hr_admin_auth', 'true');
+    localStorage.setItem('hr_admin_pwd', password);
+    return true;
   },
 
   // Get all saved profiles
@@ -361,7 +372,11 @@ export const api = {
     }
 
     try {
-      const res = await axios.post(`${API_BASE}/profiles`, { username, customMeta }, { timeout: 10000 });
+      const res = await axios.post(
+        `${API_BASE}/profiles`, 
+        { username, customMeta }, 
+        { headers: getAuthHeaders(), timeout: 12000 }
+      );
       if (res.data?.success && res.data.data) {
         return res.data.data;
       }
@@ -455,7 +470,11 @@ export const api = {
   // Batch import profiles
   async batchImport(inputs) {
     try {
-      const res = await axios.post(`${API_BASE}/profiles/batch`, { inputs }, { timeout: 15000 });
+      const res = await axios.post(
+        `${API_BASE}/profiles/batch`, 
+        { inputs }, 
+        { headers: getAuthHeaders(), timeout: 20000 }
+      );
       return res.data;
     } catch (e) {
       console.warn('Batch import via backend failed:', e.message);
@@ -474,7 +493,11 @@ export const api = {
   async updateProfileMeta(username, payload) {
     const clean = extractUsername(username);
     try {
-      const res = await axios.patch(`${API_BASE}/profiles/${clean}`, payload, { timeout: 5000 });
+      const res = await axios.patch(
+        `${API_BASE}/profiles/${clean}`, 
+        payload, 
+        { headers: getAuthHeaders(), timeout: 8000 }
+      );
       return res.data;
     } catch (e) {
       console.warn('Update meta API failed, saving locally:', e.message);
@@ -495,7 +518,10 @@ export const api = {
   async deleteProfile(username) {
     const clean = extractUsername(username);
     try {
-      await axios.delete(`${API_BASE}/profiles/${clean}`, { timeout: 5000 });
+      await axios.delete(
+        `${API_BASE}/profiles/${clean}`, 
+        { headers: getAuthHeaders(), timeout: 8000 }
+      );
     } catch (e) {
       console.warn('Delete profile API failed, deleting locally:', e.message);
     }
@@ -508,7 +534,11 @@ export const api = {
   // Sync / refresh all profiles
   async syncAllProfiles() {
     try {
-      const res = await axios.post(`${API_BASE}/profiles/sync`, {}, { timeout: 25000 });
+      const res = await axios.post(
+        `${API_BASE}/profiles/sync`, 
+        {}, 
+        { headers: getAuthHeaders(), timeout: 35000 }
+      );
       return res.data;
     } catch (e) {
       console.warn('Sync all API failed:', e.message);

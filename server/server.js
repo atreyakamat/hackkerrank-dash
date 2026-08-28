@@ -468,8 +468,23 @@ async function seedInitialData() {
 }
 seedInitialData();
 
-// Admin Password Constant
-const ADMIN_PASSWORD = 'Nanami@1304';
+// Admin Password Configuration (Environment variable with default fallback)
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Nanami@1304';
+const ADMIN_TOKEN = 'hr_admin_auth_token_secret';
+
+// Admin Authentication Middleware for mutating operations
+function requireAdminAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const adminKey = req.headers['x-admin-key'];
+
+  if (
+    (authHeader && (authHeader === `Bearer ${ADMIN_TOKEN}` || authHeader === `Bearer ${ADMIN_PASSWORD}`)) ||
+    (adminKey && (adminKey === ADMIN_PASSWORD || adminKey === ADMIN_TOKEN))
+  ) {
+    return next();
+  }
+  return res.status(401).json({ success: false, error: 'Unauthorized: Admin authentication required.' });
+}
 
 // API Endpoints
 
@@ -477,7 +492,7 @@ const ADMIN_PASSWORD = 'Nanami@1304';
 app.post('/api/admin/login', (req, res) => {
   const { password } = req.body;
   if (password === ADMIN_PASSWORD) {
-    res.json({ success: true, message: 'Admin authenticated successfully', token: 'hr_admin_active' });
+    res.json({ success: true, message: 'Admin authenticated successfully', token: ADMIN_TOKEN });
   } else {
     res.status(401).json({ success: false, error: 'Incorrect admin password' });
   }
@@ -524,8 +539,8 @@ app.get('/api/profile/:username', async (req, res) => {
   }
 });
 
-// 3. POST add new profile & persist to public hub
-app.post('/api/profiles', async (req, res) => {
+// 3. POST add new profile & persist to public hub (Admin protected)
+app.post('/api/profiles', requireAdminAuth, async (req, res) => {
   const { username: rawInput, customMeta } = req.body;
   if (!rawInput) {
     return res.status(400).json({ success: false, error: 'Username or profile URL is required' });
@@ -553,8 +568,8 @@ app.post('/api/profiles', async (req, res) => {
   }
 });
 
-// 4. POST batch add profiles & persist
-app.post('/api/profiles/batch', async (req, res) => {
+// 4. POST batch add profiles & persist (Admin protected)
+app.post('/api/profiles/batch', requireAdminAuth, async (req, res) => {
   const { inputs } = req.body;
   if (!inputs) {
     return res.status(400).json({ success: false, error: 'Inputs array or string required' });
@@ -591,8 +606,8 @@ app.post('/api/profiles/batch', async (req, res) => {
   res.json({ success: true, results, count: db.length });
 });
 
-// 5. PATCH update custom metadata (Admin notes, batch, status)
-app.patch('/api/profiles/:username', async (req, res) => {
+// 5. PATCH update custom metadata (Admin protected)
+app.patch('/api/profiles/:username', requireAdminAuth, async (req, res) => {
   const username = sanitizeUsername(req.params.username);
   const { customMeta, name, country, school, job_title } = req.body;
   const db = await readDb();
@@ -614,8 +629,8 @@ app.patch('/api/profiles/:username', async (req, res) => {
   res.json({ success: true, data: db[idx] });
 });
 
-// 6. DELETE profile & update public hub
-app.delete('/api/profiles/:username', async (req, res) => {
+// 6. DELETE profile & update public hub (Admin protected)
+app.delete('/api/profiles/:username', requireAdminAuth, async (req, res) => {
   const username = sanitizeUsername(req.params.username);
   let db = await readDb();
   const initialLen = db.length;
@@ -629,8 +644,8 @@ app.delete('/api/profiles/:username', async (req, res) => {
   res.json({ success: true, message: `Profile ${username} deleted successfully` });
 });
 
-// 7. POST sync all profiles
-app.post('/api/profiles/sync', async (req, res) => {
+// 7. POST sync all profiles (Admin protected)
+app.post('/api/profiles/sync', requireAdminAuth, async (req, res) => {
   const db = await readDb();
   const updated = [];
   const errors = [];
@@ -645,6 +660,7 @@ app.post('/api/profiles/sync', async (req, res) => {
       db[i] = fresh;
       updated.push(user);
     } catch (err) {
+      // Preserve existing profile on temporary fetch failure
       errors.push({ username: user, error: err.message });
     }
   }
