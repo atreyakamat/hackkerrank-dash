@@ -1,14 +1,8 @@
+import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Read Supabase environment variables from all standard conventions
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
 
 let supabase = null;
 
@@ -17,9 +11,9 @@ if (SUPABASE_URL && SUPABASE_KEY) {
     supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { persistSession: false }
     });
-    console.log('[SUPABASE] Initialized Supabase client for', SUPABASE_URL);
+    console.log('[SUPABASE] Connected to Supabase Project:', SUPABASE_URL);
   } catch (e) {
-    console.warn('[SUPABASE] Client initialization error:', e.message);
+    console.warn('[SUPABASE] Connection initialization error:', e.message);
   }
 }
 
@@ -27,8 +21,12 @@ export function isSupabaseConfigured() {
   return Boolean(supabase);
 }
 
-// Convert snake_case DB row to camelCase App Model
-function rowToProfile(row) {
+export function getClient() {
+  return supabase;
+}
+
+// Convert snake_case DB row from Supabase to camelCase App Model
+export function rowToProfile(row) {
   if (!row) return null;
   return {
     username: row.username,
@@ -62,8 +60,8 @@ function rowToProfile(row) {
   };
 }
 
-// Convert camelCase App Model to snake_case DB row
-function profileToRow(p) {
+// Convert camelCase App Model to snake_case DB row for Supabase
+export function profileToRow(p) {
   return {
     username: p.username,
     name: p.name || p.username,
@@ -94,7 +92,7 @@ function profileToRow(p) {
   };
 }
 
-// Read all profiles from Supabase
+// Read all profiles from Supabase PostgreSQL
 export async function getSupabaseProfiles() {
   if (!supabase) return null;
   try {
@@ -104,16 +102,33 @@ export async function getSupabaseProfiles() {
       .order('total_solved', { ascending: false });
 
     if (error) {
-      console.warn('[SUPABASE] Fetch error:', error.message);
+      console.warn('[SUPABASE] Read error:', error.message);
       return null;
     }
 
-    if (Array.isArray(data) && data.length > 0) {
+    if (Array.isArray(data)) {
       return data.map(rowToProfile);
     }
     return [];
   } catch (e) {
-    console.warn('[SUPABASE] Error reading profiles:', e.message);
+    console.warn('[SUPABASE] Exception reading profiles:', e.message);
+    return null;
+  }
+}
+
+// Read single profile from Supabase
+export async function getSupabaseProfile(username) {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('tracked_profiles')
+      .select('*')
+      .eq('username', username)
+      .single();
+
+    if (error || !data) return null;
+    return rowToProfile(data);
+  } catch {
     return null;
   }
 }
@@ -137,7 +152,33 @@ export async function upsertSupabaseProfile(profile) {
   }
 }
 
-// Delete a profile from Supabase
+// Update profile metadata in Supabase
+export async function updateSupabaseProfileMeta(username, payload) {
+  if (!supabase) return null;
+  try {
+    const updateData = { updated_at: new Date().toISOString() };
+    if (payload.customMeta) updateData.custom_meta = payload.customMeta;
+    if (payload.name) updateData.name = payload.name;
+    if (payload.country) updateData.country = payload.country;
+    if (payload.school) updateData.school = payload.school;
+    if (payload.job_title) updateData.job_title = payload.job_title;
+
+    const { data, error } = await supabase
+      .from('tracked_profiles')
+      .update(updateData)
+      .eq('username', username)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return rowToProfile(data);
+  } catch (e) {
+    console.warn(`[SUPABASE] Error updating meta for @${username}:`, e.message);
+    return null;
+  }
+}
+
+// Delete a profile from Supabase PostgreSQL
 export async function deleteSupabaseProfile(username) {
   if (!supabase) return false;
   try {
@@ -147,6 +188,7 @@ export async function deleteSupabaseProfile(username) {
       .eq('username', username);
 
     if (error) throw error;
+    console.log(`[SUPABASE] Deleted @${username} from Supabase PostgreSQL.`);
     return true;
   } catch (e) {
     console.warn(`[SUPABASE] Error deleting @${username}:`, e.message);
@@ -154,10 +196,10 @@ export async function deleteSupabaseProfile(username) {
   }
 }
 
-// Bulk seed / migration helper
+// Migrate verified local records to Supabase PostgreSQL
 export async function migrateLocalDataToSupabase(localProfiles = []) {
   if (!supabase || !Array.isArray(localProfiles) || localProfiles.length === 0) return;
-  console.log(`[SUPABASE] Migrating ${localProfiles.length} verified profiles to Supabase...`);
+  console.log(`[SUPABASE] Migrating ${localProfiles.length} verified records to Supabase...`);
   const rows = localProfiles.map(profileToRow);
   try {
     const { data, error } = await supabase
@@ -167,7 +209,7 @@ export async function migrateLocalDataToSupabase(localProfiles = []) {
     if (error) {
       console.warn('[SUPABASE] Migration error:', error.message);
     } else {
-      console.log(`[SUPABASE] Successfully migrated ${rows.length} profiles to Supabase PostgreSQL!`);
+      console.log(`[SUPABASE] Successfully persisted ${rows.length} profiles to Supabase PostgreSQL!`);
     }
   } catch (e) {
     console.warn('[SUPABASE] Migration exception:', e.message);

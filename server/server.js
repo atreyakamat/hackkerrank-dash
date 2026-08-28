@@ -1,13 +1,15 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getStore } from '@netlify/blobs';
 import { 
   getSupabaseProfiles, 
+  getSupabaseProfile,
   upsertSupabaseProfile, 
+  updateSupabaseProfileMeta,
   deleteSupabaseProfile, 
   isSupabaseConfigured, 
   migrateLocalDataToSupabase 
@@ -21,19 +23,6 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
-
-// Netlify Blobs store accessor
-function getNetlifyBlobStore() {
-  try {
-    return getStore({ name: 'hackerrank_profiles', consistency: 'strong' });
-  } catch (e) {
-    try {
-      return getStore('hackerrank_profiles');
-    } catch (err) {
-      return null;
-    }
-  }
-}
 
 // Clean username extraction from raw input or URL
 export function sanitizeUsername(input) {
@@ -80,14 +69,13 @@ export function calculateStars(slug, points) {
   return 0;
 }
 
-// Find and read the packaged baseline data/profiles.json across environments
+// Find and read the packaged baseline data/profiles.json across environments (Local Dev Reference)
 function getBundledBaselineProfiles() {
   const candidatePaths = [
     path.join(process.cwd(), 'data/profiles.json'),
     path.join(__dirname, '../data/profiles.json'),
     path.join(__dirname, '../../data/profiles.json'),
-    path.join(__dirname, 'data/profiles.json'),
-    '/tmp/profiles.json'
+    path.join(__dirname, 'data/profiles.json')
   ];
 
   for (const filePath of candidatePaths) {
@@ -106,16 +94,12 @@ function getBundledBaselineProfiles() {
   return [];
 }
 
-// In-memory cache to guarantee ultra-fast responses across lambda invocations
+// In-memory cache to guarantee fast response during hot lambda sessions
 let memoryProfilesCache = null;
 
-// Database helper functions with Supabase PostgreSQL + Netlify Blobs + local file persistence
+// Database helper functions with Supabase PostgreSQL as the authoritative source
 export async function readDb() {
-  if (memoryProfilesCache && Array.isArray(memoryProfilesCache) && memoryProfilesCache.length > 0) {
-    return memoryProfilesCache;
-  }
-
-  // 1. Try Supabase PostgreSQL if configured
+  // 1. Authoritative: Supabase PostgreSQL
   if (isSupabaseConfigured()) {
     try {
       const supabaseProfiles = await getSupabaseProfiles();
@@ -123,44 +107,29 @@ export async function readDb() {
         memoryProfilesCache = supabaseProfiles;
         return supabaseProfiles;
       }
-      // If Supabase table is empty, seed from bundled baseline
-      const baseline = getBundledBaselineProfiles();
-      if (baseline.length > 0) {
-        await migrateLocalDataToSupabase(baseline);
-        memoryProfilesCache = baseline;
-        return baseline;
+      
+      // If Supabase table exists but has 0 records, seed from verified local baseline
+      if (Array.isArray(supabaseProfiles) && supabaseProfiles.length === 0) {
+        const baseline = getBundledBaselineProfiles();
+        if (baseline.length > 0) {
+          await migrateLocalDataToSupabase(baseline);
+          memoryProfilesCache = baseline;
+          return baseline;
+        }
       }
     } catch (e) {
       console.warn('[STORAGE] Supabase read exception:', e.message);
     }
   }
 
-  // 2. Try Netlify Blobs (cloud persistent storage on Netlify)
-  const store = getNetlifyBlobStore();
-  if (store) {
-    try {
-      const data = await store.get('profiles_list', { type: 'json' });
-      if (Array.isArray(data) && data.length > 0) {
-        memoryProfilesCache = data;
-        return data;
-      }
-    } catch (e) {
-      console.warn('[STORAGE] Netlify Blobs read error:', e.message);
-    }
+  if (memoryProfilesCache && Array.isArray(memoryProfilesCache) && memoryProfilesCache.length > 0) {
+    return memoryProfilesCache;
   }
 
-  // 3. Fallback to Bundled Baseline profiles.json (packaged with repository)
+  // 2. Development fallback only
   const baseline = getBundledBaselineProfiles();
   if (baseline.length > 0) {
     memoryProfilesCache = baseline;
-    if (store) {
-      try {
-        await store.setJSON('profiles_list', baseline);
-        console.log(`[STORAGE] Initialized Netlify Blobs with ${baseline.length} baseline profiles.`);
-      } catch (e) {
-        // ignore
-      }
-    }
     return baseline;
   }
 
@@ -170,7 +139,7 @@ export async function readDb() {
 export async function writeDb(data) {
   memoryProfilesCache = data;
 
-  // 1. Save to Supabase PostgreSQL if configured
+  // 1. Authoritative: Supabase PostgreSQL
   if (isSupabaseConfigured()) {
     try {
       await migrateLocalDataToSupabase(data);
@@ -179,24 +148,7 @@ export async function writeDb(data) {
     }
   }
 
-  // 2. Save to Netlify Blobs for persistent Netlify cloud deployment
-  const store = getNetlifyBlobStore();
-  if (store) {
-    try {
-      await store.setJSON('profiles_list', data);
-    } catch (e) {
-      console.warn('[STORAGE] Netlify Blobs write error:', e.message);
-    }
-  }
-
-  // 3. Save to /tmp/profiles.json (ephemeral Lambda session cache)
-  try {
-    fs.writeFileSync('/tmp/profiles.json', JSON.stringify(data, null, 2), 'utf-8');
-  } catch (e) {
-    // ignore
-  }
-
-  // 4. Save to local disk if writable
+  // 2. Local reference file if writable
   const localDb = path.join(process.cwd(), 'data/profiles.json');
   try {
     if (!fs.existsSync(path.dirname(localDb))) {
@@ -412,7 +364,6 @@ export async function autoSyncProfiles() {
         failCount++;
         console.error(`[SYNC] Unexpected error syncing ${user}:`, err.message);
       }
-      // Small 400ms delay between members to respect HackerRank rate limits
       await new Promise(r => setTimeout(r, 400));
     }
 
@@ -425,7 +376,7 @@ export async function autoSyncProfiles() {
   }
 }
 
-// Run 10-minute auto-sync timer in local development (10 * 60 * 1000 ms = 600,000 ms)
+// Run 10-minute auto-sync timer in local development
 if (!process.env.NETLIFY) {
   setInterval(autoSyncProfiles, 10 * 60 * 1000);
 }
@@ -460,7 +411,7 @@ app.post('/api/admin/login', (req, res) => {
   }
 });
 
-// 1. GET all profiles (Publicly accessible)
+// 1. GET all profiles (Publicly accessible - reads directly from Supabase)
 app.get('/api/profiles', async (req, res) => {
   const profiles = await readDb();
   res.json({ 
@@ -475,6 +426,14 @@ app.get('/api/profiles', async (req, res) => {
 app.get('/api/profile/:username', async (req, res) => {
   const rawUser = req.params.username;
   const username = sanitizeUsername(rawUser);
+
+  if (isSupabaseConfigured() && !req.query.forceRefresh) {
+    const fromSupabase = await getSupabaseProfile(username);
+    if (fromSupabase) {
+      return res.json({ success: true, cached: true, data: fromSupabase });
+    }
+  }
+
   const db = await readDb();
   const existing = db.find(p => p.username.toLowerCase() === username.toLowerCase());
 
@@ -501,7 +460,7 @@ app.get('/api/profile/:username', async (req, res) => {
   }
 });
 
-// 3. POST add new profile & persist (Admin protected)
+// 3. POST add new profile & persist to Supabase (Admin protected)
 app.post('/api/profiles', requireAdminAuth, async (req, res) => {
   const { username: rawInput, customMeta } = req.body;
   if (!rawInput) {
@@ -518,6 +477,10 @@ app.post('/api/profiles', requireAdminAuth, async (req, res) => {
       fresh.customMeta = { ...fresh.customMeta, ...customMeta };
     }
 
+    if (isSupabaseConfigured()) {
+      await upsertSupabaseProfile(fresh);
+    }
+
     if (existingIdx >= 0) {
       db[existingIdx] = fresh;
     } else {
@@ -530,7 +493,7 @@ app.post('/api/profiles', requireAdminAuth, async (req, res) => {
   }
 });
 
-// 4. POST batch add profiles & persist (Admin protected)
+// 4. POST batch add profiles & persist to Supabase (Admin protected)
 app.post('/api/profiles/batch', requireAdminAuth, async (req, res) => {
   const { inputs } = req.body;
   if (!inputs) {
@@ -552,6 +515,9 @@ app.post('/api/profiles/batch', requireAdminAuth, async (req, res) => {
     if (!username) continue;
     try {
       const profile = await fetchHackerRankProfile(username);
+      if (isSupabaseConfigured()) {
+        await upsertSupabaseProfile(profile);
+      }
       const idx = db.findIndex(p => p.username.toLowerCase() === username.toLowerCase());
       if (idx >= 0) {
         db[idx] = profile;
@@ -619,7 +585,7 @@ app.post('/api/profiles/sync', requireAdminAuth, async (req, res) => {
   res.json({ success: true, updated, errors, total: db.length });
 });
 
-// 7. PATCH update custom metadata (Admin protected)
+// 7. PATCH update custom metadata in Supabase (Admin protected)
 app.patch('/api/profiles/:username', requireAdminAuth, async (req, res) => {
   const username = sanitizeUsername(req.params.username);
   const { customMeta, name, country, school, job_title } = req.body;
@@ -638,11 +604,15 @@ app.patch('/api/profiles/:username', requireAdminAuth, async (req, res) => {
   if (school) db[idx].school = school;
   if (job_title) db[idx].job_title = job_title;
 
+  if (isSupabaseConfigured()) {
+    await updateSupabaseProfileMeta(username, { customMeta, name, country, school, job_title });
+  }
+
   await writeDb(db);
   res.json({ success: true, data: db[idx] });
 });
 
-// 8. DELETE profile (Admin protected)
+// 8. DELETE profile from Supabase & state (Admin protected)
 app.delete('/api/profiles/:username', requireAdminAuth, async (req, res) => {
   const username = sanitizeUsername(req.params.username);
   let db = await readDb();

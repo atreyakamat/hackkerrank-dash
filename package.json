@@ -12,7 +12,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@netlify/blobs": "^11.0.2",
     "@supabase/supabase-js": "^2.112.4",
     "axios": "^1.7.9",
     "canvas-confetti": "^1.9.4",
@@ -21,6 +20,7 @@
     "dotenv": "^17.4.2",
     "express": "^4.21.2",
     "lucide-react": "^1.16.0",
+    "pg": "^8.23.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "serverless-http": "^4.0.0",
