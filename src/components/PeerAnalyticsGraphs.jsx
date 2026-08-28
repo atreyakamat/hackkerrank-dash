@@ -7,18 +7,30 @@ import {
   TrendingUp, 
   Layers, 
   Users, 
-  ExternalLink,
-  Award,
-  Filter,
-  Sparkles,
-  Flame,
-  Crown
+  ExternalLink, 
+  Award, 
+  Filter, 
+  Sparkles, 
+  Flame, 
+  Crown,
+  UserPlus,
+  Eye,
+  ArrowRight,
+  Code2
 } from 'lucide-react';
 
-export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, activeUsername }) {
+export default function PeerAnalyticsGraphs({ 
+  profiles = [], 
+  onSelectProfile, 
+  activeUsername,
+  onAddProfile,
+  openAddModal
+}) {
   const [selectedMetric, setSelectedMetric] = useState('solved'); // solved, stars, points, badges
   const [tagFilter, setTagFilter] = useState('ALL');
   const [hoveredBar, setHoveredBar] = useState(null);
+  const [quickInput, setQuickInput] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
 
   // Filter profiles by tag/batch if any
   const availableTags = ['ALL', ...new Set(profiles.map(p => p.customMeta?.batch).filter(Boolean))];
@@ -36,6 +48,7 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
     points: p.totalPoints || 0,
     badges: p.badges?.length || 0,
     avatar: p.avatar,
+    school: p.school || 'Developer',
     isCurrent: p.username.toLowerCase() === activeUsername?.toLowerCase(),
     domainStars: {
       python: p.badges?.find(b => b.badge_type === 'python' || b.badge_name?.toLowerCase().includes('python'))?.stars || 0,
@@ -53,10 +66,29 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
 
   const maxValue = Math.max(...peerData.map(p => p[selectedMetric]), 1);
 
+  // Group summary metrics
+  const totalGroupSolved = peerData.reduce((sum, p) => sum + p.solved, 0);
+  const totalGroupStars = peerData.reduce((sum, p) => sum + p.stars, 0);
+  const topSolver = peerData[0];
+
+  const handleQuickAdd = async (e) => {
+    e.preventDefault();
+    if (!quickInput.trim()) return;
+    setIsAdding(true);
+    try {
+      await onAddProfile(quickInput.trim(), { batch: 'Core Group', status: 'Active' });
+      setQuickInput('');
+    } catch (err) {
+      alert(err.message || 'Failed to add profile');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       
-      {/* Header Banner */}
+      {/* Top Hero Banner */}
       <div className="rounded-2xl bg-gradient-to-r from-[#182535] via-[#151F2C] to-[#121B27] border border-[#263545] p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="p-3 bg-[#2EC866]/15 rounded-xl border border-[#2EC866]/30 text-[#00EA64]">
@@ -64,29 +96,44 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Peer Comparison & Visual Bar Graphs
+              Peer Coding Tracker & Bar Graphs
             </h1>
             <p className="text-xs text-slate-400">
-              Interactive bar graphs comparing coding problem volume, badge stars, and track scores across peers
+              Live visual comparison of problem volume, badge stars, and domain mastery across all added users
             </p>
           </div>
         </div>
 
-        {/* Group / Tag filter */}
-        {availableTags.length > 2 && (
-          <div className="flex items-center gap-2 bg-[#0E141E] p-1.5 rounded-xl border border-[#263545]">
-            <span className="text-[11px] font-mono text-slate-400 pl-2">Filter Group:</span>
-            <select
-              value={tagFilter}
-              onChange={(e) => setTagFilter(e.target.value)}
-              className="bg-[#151F2C] text-xs font-semibold text-white px-2.5 py-1 rounded-lg border border-[#263545] focus:outline-none focus:border-[#2EC866]"
-            >
-              {availableTags.map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-          </div>
-        )}
+        {/* Quick Add Button */}
+        <button
+          onClick={openAddModal}
+          className="flex items-center gap-1.5 px-4 py-2 bg-[#2EC866] hover:bg-[#24a152] text-black font-bold rounded-xl text-xs shadow-lg shadow-[#2EC866]/20 transition-all shrink-0"
+        >
+          <UserPlus className="w-4 h-4" />
+          <span>+ Add User to Graph</span>
+        </button>
+      </div>
+
+      {/* Group KPI Summary Ribbon */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="hr-card p-4 text-center">
+          <p className="text-[10px] uppercase font-mono text-slate-400">Tracked Users</p>
+          <p className="text-xl sm:text-2xl font-black text-white font-mono mt-1">{peerData.length} Peers</p>
+        </div>
+        <div className="hr-card p-4 text-center">
+          <p className="text-[10px] uppercase font-mono text-slate-400">Group Solved</p>
+          <p className="text-xl sm:text-2xl font-black text-[#00EA64] font-mono mt-1">{totalGroupSolved}</p>
+        </div>
+        <div className="hr-card p-4 text-center">
+          <p className="text-[10px] uppercase font-mono text-slate-400">Group Stars</p>
+          <p className="text-xl sm:text-2xl font-black text-amber-400 font-mono mt-1">★ {totalGroupStars}</p>
+        </div>
+        <div className="hr-card p-4 text-center">
+          <p className="text-[10px] uppercase font-mono text-slate-400">Leader</p>
+          <p className="text-base sm:text-lg font-black text-cyan-400 font-mono mt-1 truncate">
+            {topSolver ? `@${topSolver.username}` : '—'}
+          </p>
+        </div>
       </div>
 
       {/* Main Comparative Bar Graph Card */}
@@ -96,12 +143,12 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#263545]/60">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <span>Peer Benchmarking Bar Graph</span>
+              <span>Comparative User Bar Graph</span>
               <span className="text-xs font-mono font-bold text-[#00EA64] bg-[#2EC866]/15 px-2 py-0.5 rounded-full border border-[#2EC866]/30">
-                {peerData.length} Peers Tracked
+                {peerData.length} Added Users
               </span>
             </h3>
-            <p className="text-xs text-slate-400">Click any peer bar to inspect their full individual profile and dashboard</p>
+            <p className="text-xs text-slate-400">Click any user's bar to open their individual dashboard and detailed stats</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 bg-[#0E141E] p-1 rounded-xl border border-[#263545]">
@@ -126,20 +173,17 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
           </div>
         </div>
 
-        {/* Responsive Horizontal / Vertical Bar Chart */}
-        <div className="space-y-3.5 pt-2">
+        {/* Responsive Interactive Bar Chart Rows */}
+        <div className="space-y-3 pt-2">
           {peerData.map((peer, idx) => {
             const val = peer[selectedMetric];
             const pct = Math.min(100, Math.round((val / maxValue) * 100));
             const isWinner = idx === 0;
-            const isHovered = hoveredBar === peer.username;
 
             return (
               <div
                 key={peer.username}
                 onClick={() => onSelectProfile(peer.username)}
-                onMouseEnter={() => setHoveredBar(peer.username)}
-                onMouseLeave={() => setHoveredBar(null)}
                 className={`p-3.5 rounded-xl border transition-all cursor-pointer group ${
                   peer.isCurrent
                     ? 'bg-[#2EC866]/10 border-[#2EC866] shadow-[0_0_15px_rgba(46,200,102,0.15)]'
@@ -168,18 +212,19 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
                   </div>
 
                   {/* Metric Value Label */}
-                  <div className="text-right shrink-0 font-mono">
+                  <div className="text-right shrink-0 font-mono flex items-center gap-2">
                     <span className={`text-sm font-bold ${peer.isCurrent ? 'text-[#00EA64]' : 'text-white'}`}>
                       {selectedMetric === 'solved' && `${val} Solved`}
                       {selectedMetric === 'stars' && `★ ${val} Stars`}
                       {selectedMetric === 'points' && `${val} pts`}
                       {selectedMetric === 'badges' && `${val} Badges`}
                     </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#00EA64] group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </div>
 
                 {/* Animated Horizontal Bar */}
-                <div className="w-full h-3 bg-[#151F2C] rounded-full overflow-hidden border border-[#263545]/60 flex">
+                <div className="w-full h-3.5 bg-[#151F2C] rounded-full overflow-hidden border border-[#263545]/60 flex">
                   <div
                     className={`h-full rounded-full transition-all duration-700 ${
                       peer.isCurrent 
@@ -196,21 +241,32 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
           })}
         </div>
 
-        {/* Active Highlight Banner */}
-        {activeUsername && (
-          <div className="flex items-center justify-between p-3 rounded-xl bg-[#0E141E] border border-[#263545] text-xs font-mono">
-            <span className="text-slate-400">
-              Active Peer: <span className="text-[#00EA64] font-bold">@{activeUsername}</span>
-            </span>
-            <span className="text-slate-400">
-              Click any bar to switch profile
-            </span>
-          </div>
-        )}
+        {/* Inline Quick Add Input Bar */}
+        <div className="pt-4 border-t border-[#263545]/60">
+          <form onSubmit={handleQuickAdd} className="flex flex-col sm:flex-row items-center gap-2">
+            <div className="relative flex-1 w-full">
+              <input
+                type="text"
+                placeholder="Add another HackerRank username or profile link (e.g. atkamat1204)..."
+                value={quickInput}
+                onChange={(e) => setQuickInput(e.target.value)}
+                className="w-full bg-[#0E141E] border border-[#263545] rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#2EC866] font-mono"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isAdding || !quickInput.trim()}
+              className="w-full sm:w-auto px-4 py-2 bg-[#151F2C] hover:bg-[#2EC866] text-[#00EA64] hover:text-black font-bold rounded-xl text-xs border border-[#2EC866]/30 transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>{isAdding ? 'Fetching...' : '+ Add to Graph'}</span>
+            </button>
+          </form>
+        </div>
 
       </div>
 
-      {/* Second Card: Domain Star Mastery Breakdown Bar Graph */}
+      {/* Second Card: Domain Star Mastery Breakdown Across All Users */}
       <div className="hr-card p-5 sm:p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -219,9 +275,9 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
             </div>
             <div>
               <h3 className="text-base font-bold text-white">
-                Domain Star Depth across Peers (Python, C++, Java, Problem Solving, SQL)
+                Domain Star Depth across Added Users (Python, C++, Java, Problem Solving, SQL)
               </h3>
-              <p className="text-xs text-slate-400">Breakdown of domain star achievements for each peer</p>
+              <p className="text-xs text-slate-400">Side-by-side star depth for each tracked peer across key domains</p>
             </div>
           </div>
         </div>
@@ -238,7 +294,7 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
                   <img
                     src={peer.avatar}
                     alt={peer.username}
-                    className="w-6 h-6 rounded-full bg-slate-800 border border-[#263545]"
+                    className="w-7 h-7 rounded-full bg-slate-800 border border-[#263545]"
                     onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${peer.username}`; }}
                   />
                   <div>

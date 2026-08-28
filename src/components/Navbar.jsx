@@ -41,22 +41,19 @@ export default function Navbar({
   );
 
   const tabs = [
-    { id: 'dashboard', label: 'Peer Dashboard', icon: Code2 },
     { id: 'analytics', label: 'Peer Bar Graphs', icon: BarChart3 },
+    { id: 'dashboard', label: 'Individual Dashboard', icon: Code2 },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { id: 'compare', label: 'Compare Peers', icon: GitCompare },
-    { id: 'admin', label: 'Admin Hub (Add Peers)', icon: ShieldCheck, badge: profiles.length }
+    { id: 'admin', label: 'Admin Hub', icon: ShieldCheck, badge: profiles.length }
   ];
 
   // Handle Share Tracker Link
   const handleShareLink = () => {
     const url = new URL(window.location.href);
-    if (activeTab === 'dashboard' && currentProfile) {
+    url.searchParams.set('tab', activeTab);
+    if (currentProfile) {
       url.searchParams.set('peer', currentProfile.username);
-      url.searchParams.set('tab', 'dashboard');
-    } else {
-      url.searchParams.set('tab', activeTab);
-      if (currentProfile) url.searchParams.set('peer', currentProfile.username);
     }
 
     navigator.clipboard.writeText(url.toString());
@@ -78,7 +75,7 @@ export default function Navbar({
           {/* Brand Logo */}
           <div className="flex items-center gap-3 shrink-0">
             <button 
-              onClick={() => setActiveTab('dashboard')} 
+              onClick={() => setActiveTab('analytics')} 
               className="flex items-center gap-2 group text-left focus:outline-none"
             >
               <div className="w-10 h-10 rounded-lg bg-[#151F2C] border border-[#2EC866]/40 flex items-center justify-center shadow-md group-hover:border-[#00EA64] transition-all">
@@ -127,13 +124,13 @@ export default function Navbar({
             })}
           </nav>
 
-          {/* Right Action Section: Peer Switcher, Share Link, Sync */}
+          {/* Right Action Section: Share Link, Peer Switcher, Sync */}
           <div className="flex items-center gap-2">
             
             {/* Share Tracker Link Button */}
             <button
               onClick={handleShareLink}
-              title="Copy shareable tracker link with current peer/view"
+              title="Copy shareable tracker link"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[#151F2C] hover:bg-[#1E2A38] border border-[#263545] hover:border-[#2EC866]/50 rounded-xl text-xs font-semibold text-slate-200 hover:text-[#00EA64] transition-all"
             >
               {copiedLink ? (
@@ -144,7 +141,7 @@ export default function Navbar({
               ) : (
                 <>
                   <Share2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Share Link</span>
+                  <span className="hidden sm:inline">Share Tracker</span>
                 </>
               )}
             </button>

@@ -35,14 +35,14 @@ import {
 import confetti from 'canvas-confetti';
 
 export default function App() {
-  // Read initial query params from URL
+  // Read initial query params from URL - DEFAULT TO 'analytics' (Bar Graphs)
   const searchParams = new URLSearchParams(window.location.search);
   const initialPeer = searchParams.get('peer') || 'atkamat1204';
-  const initialTab = searchParams.get('tab') || 'dashboard';
+  const initialTab = searchParams.get('tab') || 'analytics';
 
   const [profiles, setProfiles] = useState(DEFAULT_PROFILES);
   const [activeUsername, setActiveUsername] = useState(initialPeer);
-  const [activeTab, setActiveTab] = useState(initialTab); // dashboard, analytics, leaderboard, compare, admin
+  const [activeTab, setActiveTab] = useState(initialTab); // analytics (default), dashboard, leaderboard, compare, admin
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -101,7 +101,7 @@ export default function App() {
     p => p.username.toLowerCase() === activeUsername.toLowerCase()
   ) || profiles[0];
 
-  // Select profile
+  // Select profile and optionally switch to dashboard
   const handleSelectProfile = (username) => {
     setActiveUsername(username);
     setActiveTab('dashboard');
@@ -194,7 +194,7 @@ export default function App() {
       });
       setShowAddModal(false);
       setQuickAddInput('');
-      setActiveTab('dashboard');
+      setActiveTab('analytics');
       confetti({
         particleCount: 40,
         spread: 60,
@@ -211,7 +211,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0E141E] text-slate-100 flex flex-col selection:bg-[#2EC866]/30 selection:text-[#00EA64]">
       
-      {/* Top Navigation Bar with deep-link sharing */}
+      {/* Top Navigation Bar */}
       <Navbar
         currentProfile={currentProfile}
         profiles={profiles}
@@ -234,7 +234,18 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 1: Individual Peer Dashboard with Profile Graphs */}
+        {/* DEFAULT TAB 1: Peer Group Bar Graphs & Overview Analytics (INITIAL PAGE) */}
+        {activeTab === 'analytics' && (
+          <PeerAnalyticsGraphs
+            profiles={profiles}
+            onSelectProfile={handleSelectProfile}
+            activeUsername={activeUsername}
+            onAddProfile={handleAddProfile}
+            openAddModal={() => setShowAddModal(true)}
+          />
+        )}
+
+        {/* TAB 2: Individual Peer Dashboard with Profile Graphs */}
         {activeTab === 'dashboard' && currentProfile && (
           <div className="space-y-6 animate-in fade-in duration-300">
             
@@ -289,15 +300,6 @@ export default function App() {
             />
 
           </div>
-        )}
-
-        {/* TAB 2: Multi-Peer Comparative Bar Graphs */}
-        {activeTab === 'analytics' && (
-          <PeerAnalyticsGraphs
-            profiles={profiles}
-            onSelectProfile={handleSelectProfile}
-            activeUsername={activeUsername}
-          />
         )}
 
         {/* TAB 3: Peer Group Leaderboard */}
