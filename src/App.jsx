@@ -30,19 +30,29 @@ import {
   ExternalLink,
   Plus,
   BarChart3,
-  Share2
+  Share2,
+  Lock,
+  Unlock,
+  ArrowLeft
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function App() {
-  // Read initial query params from URL - DEFAULT TO 'analytics' (Bar Graphs)
   const searchParams = new URLSearchParams(window.location.search);
+  const path = window.location.pathname.toLowerCase();
+  
+  // Check if accessing the secret /hacko/admin route
+  const isDirectAdminUrl = path === '/hacko/admin' || path === '/hacko/admin/' || searchParams.get('admin') === 'true';
+
+  const [isAdminRoute, setIsAdminRoute] = useState(isDirectAdminUrl);
   const initialPeer = searchParams.get('peer') || 'atkamat1204';
-  const initialTab = searchParams.get('tab') || 'analytics';
+  const initialTab = isDirectAdminUrl 
+    ? (searchParams.get('tab') || 'admin')
+    : (searchParams.get('tab') || 'analytics');
 
   const [profiles, setProfiles] = useState(DEFAULT_PROFILES);
   const [activeUsername, setActiveUsername] = useState(initialPeer);
-  const [activeTab, setActiveTab] = useState(initialTab); // analytics (default), dashboard, leaderboard, compare, admin
+  const [activeTab, setActiveTab] = useState(initialTab); // analytics (default public), dashboard, leaderboard, compare, admin
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -54,15 +64,19 @@ export default function App() {
   const [quickAddBatch, setQuickAddBatch] = useState('Core Group');
   const [isQuickAdding, setIsQuickAdding] = useState(false);
 
-  // Sync URL search params when activeUsername or activeTab changes
+  // Sync URL when tab/peer changes
   useEffect(() => {
     const url = new URL(window.location.href);
-    url.searchParams.set('tab', activeTab);
-    if (activeUsername) {
-      url.searchParams.set('peer', activeUsername);
+    if (isAdminRoute && activeTab === 'admin') {
+      window.history.replaceState({}, '', '/hacko/admin');
+    } else {
+      url.searchParams.set('tab', activeTab);
+      if (activeUsername) {
+        url.searchParams.set('peer', activeUsername);
+      }
+      window.history.replaceState({}, '', url.toString());
     }
-    window.history.replaceState({}, '', url.toString());
-  }, [activeTab, activeUsername]);
+  }, [activeTab, activeUsername, isAdminRoute]);
 
   // Initial load
   useEffect(() => {
@@ -77,7 +91,6 @@ export default function App() {
       if (Array.isArray(data) && data.length > 0) {
         setProfiles(data);
         
-        // If initialPeer is specified from URL, try to select or load it
         const exists = data.find(p => p.username.toLowerCase() === activeUsername.toLowerCase());
         if (!exists && initialPeer) {
           try {
@@ -101,7 +114,7 @@ export default function App() {
     p => p.username.toLowerCase() === activeUsername.toLowerCase()
   ) || profiles[0];
 
-  // Select profile and optionally switch to dashboard
+  // Select profile
   const handleSelectProfile = (username) => {
     setActiveUsername(username);
     setActiveTab('dashboard');
@@ -208,9 +221,34 @@ export default function App() {
     }
   };
 
+  // Exit admin mode back to public tracker
+  const handleExitAdmin = () => {
+    setIsAdminRoute(false);
+    setActiveTab('analytics');
+    window.history.pushState({}, '', '/');
+  };
+
   return (
     <div className="min-h-screen bg-[#0E141E] text-slate-100 flex flex-col selection:bg-[#2EC866]/30 selection:text-[#00EA64]">
       
+      {/* Secret Admin Banner when accessed at /hacko/admin */}
+      {isAdminRoute && (
+        <div className="bg-gradient-to-r from-amber-500/20 via-amber-600/10 to-transparent border-b border-amber-500/30 px-4 py-2 text-xs font-mono flex items-center justify-between text-amber-300">
+          <div className="flex items-center gap-2">
+            <Unlock className="w-3.5 h-3.5 text-amber-400" />
+            <span className="font-bold">ADMIN CONSOLE ACTIVE (/hacko/admin)</span>
+            <span className="hidden md:inline text-slate-400">• Hidden from public view. Add and manage peer profiles.</span>
+          </div>
+          <button
+            onClick={handleExitAdmin}
+            className="flex items-center gap-1 px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-lg border border-amber-500/40 text-[11px] font-bold transition-all"
+          >
+            <ArrowLeft className="w-3 h-3" />
+            <span>Exit to Public Hub</span>
+          </button>
+        </div>
+      )}
+
       {/* Top Navigation Bar */}
       <Navbar
         currentProfile={currentProfile}
@@ -221,6 +259,8 @@ export default function App() {
         onSyncCurrent={handleSyncCurrent}
         isSyncing={isSyncing}
         openAddModal={() => setShowAddModal(true)}
+        isAdminRoute={isAdminRoute}
+        onExitAdmin={handleExitAdmin}
       />
 
       {/* Main Content Area */}
@@ -234,7 +274,7 @@ export default function App() {
           </div>
         )}
 
-        {/* DEFAULT TAB 1: Peer Group Bar Graphs & Overview Analytics (INITIAL PAGE) */}
+        {/* DEFAULT TAB 1: Peer Group Bar Graphs & Overview Analytics (INITIAL PUBLIC LANDING PAGE) */}
         {activeTab === 'analytics' && (
           <PeerAnalyticsGraphs
             profiles={profiles}
@@ -242,6 +282,7 @@ export default function App() {
             activeUsername={activeUsername}
             onAddProfile={handleAddProfile}
             openAddModal={() => setShowAddModal(true)}
+            isAdminRoute={isAdminRoute}
           />
         )}
 
@@ -253,6 +294,7 @@ export default function App() {
             <ProfileHero
               profile={currentProfile}
               onEditClick={(p) => setEditProfileData(p)}
+              isAdminRoute={isAdminRoute}
             />
 
             {/* Key Metrics Overview Bar */}
@@ -319,8 +361,8 @@ export default function App() {
           />
         )}
 
-        {/* TAB 5: Admin Hub (Add Peer Profiles & Manage) */}
-        {activeTab === 'admin' && (
+        {/* TAB 5: Admin Hub (Add Peer Profiles & Manage - ONLY AT /hacko/admin) */}
+        {activeTab === 'admin' && isAdminRoute && (
           <AdminPanel
             profiles={profiles}
             onAddProfile={handleAddProfile}
@@ -360,8 +402,8 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Edit Profile Metadata Modal */}
-      {editProfileData && (
+      {/* Edit Profile Metadata Modal (Admin Only) */}
+      {editProfileData && isAdminRoute && (
         <EditProfileModal
           profile={editProfileData}
           isOpen={Boolean(editProfileData)}
@@ -370,8 +412,8 @@ export default function App() {
         />
       )}
 
-      {/* Quick Add Modal */}
-      {showAddModal && (
+      {/* Quick Add Modal (Admin Only) */}
+      {showAddModal && isAdminRoute && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-[#151F2C] border border-[#263545] rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
             <button

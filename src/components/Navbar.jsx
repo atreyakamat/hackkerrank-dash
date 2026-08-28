@@ -15,7 +15,9 @@ import {
   BarChart3,
   Share2,
   Check,
-  UserPlus
+  UserPlus,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -27,7 +29,9 @@ export default function Navbar({
   setActiveTab, 
   onSyncCurrent, 
   isSyncing,
-  openAddModal
+  openAddModal,
+  isAdminRoute,
+  onExitAdmin
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -40,18 +44,24 @@ export default function Navbar({
     p.customMeta?.batch?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const tabs = [
+  // Public tabs visible to all peers
+  const publicTabs = [
     { id: 'analytics', label: 'Peer Bar Graphs', icon: BarChart3 },
     { id: 'dashboard', label: 'Individual Dashboard', icon: Code2 },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
-    { id: 'compare', label: 'Compare Peers', icon: GitCompare },
-    { id: 'admin', label: 'Admin Hub', icon: ShieldCheck, badge: profiles.length }
+    { id: 'compare', label: 'Compare Peers', icon: GitCompare }
   ];
 
-  // Handle Share Tracker Link
+  // If visiting /hacko/admin, include Admin tab
+  const tabs = isAdminRoute 
+    ? [...publicTabs, { id: 'admin', label: 'Admin Hub (/hacko/admin)', icon: ShieldCheck, badge: profiles.length }]
+    : publicTabs;
+
+  // Handle Share Tracker Link (always generates a clean public URL for peers)
   const handleShareLink = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('tab', activeTab);
+    const url = new URL(window.location.origin);
+    const targetTab = activeTab === 'admin' ? 'analytics' : activeTab;
+    url.searchParams.set('tab', targetTab);
     if (currentProfile) {
       url.searchParams.set('peer', currentProfile.username);
     }
@@ -89,6 +99,12 @@ export default function Navbar({
                   <span className="bg-[#2EC866]/15 text-[#00EA64] border border-[#2EC866]/30 text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold">
                     PEER HUB
                   </span>
+                  {isAdminRoute && (
+                    <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
+                      <Unlock className="w-2.5 h-2.5" />
+                      ADMIN
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-400 font-medium">Coding & Progress Tracker</p>
               </div>
@@ -106,7 +122,9 @@ export default function Navbar({
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     isActive
-                      ? 'bg-[#2EC866] text-black shadow-md shadow-[#2EC866]/20 font-bold'
+                      ? tab.id === 'admin'
+                        ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20 font-bold'
+                        : 'bg-[#2EC866] text-black shadow-md shadow-[#2EC866]/20 font-bold'
                       : 'text-slate-300 hover:text-white hover:bg-[#1E2A38]'
                   }`}
                 >
@@ -130,7 +148,7 @@ export default function Navbar({
             {/* Share Tracker Link Button */}
             <button
               onClick={handleShareLink}
-              title="Copy shareable tracker link"
+              title="Copy shareable tracker link for peers"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[#151F2C] hover:bg-[#1E2A38] border border-[#263545] hover:border-[#2EC866]/50 rounded-xl text-xs font-semibold text-slate-200 hover:text-[#00EA64] transition-all"
             >
               {copiedLink ? (
@@ -232,18 +250,21 @@ export default function Navbar({
                     })}
                   </div>
 
-                  <div className="p-2 border-t border-[#263545] bg-[#0E141E]/50 flex gap-2">
-                    <button
-                      onClick={() => {
-                        setDropdownOpen(false);
-                        openAddModal();
-                      }}
-                      className="w-full py-1.5 px-3 bg-[#2EC866] hover:bg-[#24a152] text-black font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <UserPlus className="w-3.5 h-3.5" />
-                      <span>Add Peer Profile</span>
-                    </button>
-                  </div>
+                  {/* Add Peer Button ONLY in Admin mode */}
+                  {isAdminRoute && (
+                    <div className="p-2 border-t border-[#263545] bg-[#0E141E]/50 flex gap-2">
+                      <button
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          openAddModal();
+                        }}
+                        className="w-full py-1.5 px-3 bg-[#2EC866] hover:bg-[#24a152] text-black font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Add Peer Profile</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -319,17 +340,19 @@ export default function Navbar({
               );
             })}
             
-            <div className="pt-2">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  openAddModal();
-                }}
-                className="w-full py-2 bg-[#2EC866] text-black font-bold text-sm rounded-lg flex items-center justify-center gap-2"
-              >
-                + Add Peer Profile
-              </button>
-            </div>
+            {isAdminRoute && (
+              <div className="pt-2">
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    openAddModal();
+                  }}
+                  className="w-full py-2 bg-[#2EC866] text-black font-bold text-sm rounded-lg flex items-center justify-center gap-2"
+                >
+                  + Add Peer Profile
+                </button>
+              </div>
+            )}
           </div>
         )}
 

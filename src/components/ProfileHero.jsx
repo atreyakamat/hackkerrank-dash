@@ -38,7 +38,7 @@ function LinkedinIcon(props) {
   );
 }
 
-export default function ProfileHero({ profile, onEditClick }) {
+export default function ProfileHero({ profile, onEditClick, isAdminRoute }) {
   const [copied, setCopied] = useState(false);
 
   if (!profile) return null;
@@ -248,13 +248,15 @@ export default function ProfileHero({ profile, onEditClick }) {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <button
-              onClick={() => onEditClick(profile)}
-              className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#151F2C] hover:bg-[#1E2A38] text-slate-200 hover:text-white rounded-xl text-xs font-semibold border border-[#263545] transition-all"
-            >
-              <Edit3 className="w-3.5 h-3.5 text-[#00EA64]" />
-              <span>Edit Metadata</span>
-            </button>
+            {isAdminRoute && (
+              <button
+                onClick={() => onEditClick(profile)}
+                className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#151F2C] hover:bg-[#1E2A38] text-slate-200 hover:text-white rounded-xl text-xs font-semibold border border-[#263545] transition-all"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-[#00EA64]" />
+                <span>Edit Metadata</span>
+              </button>
+            )}
             <a
               href={hrProfileUrl}
               target="_blank"
@@ -270,8 +272,8 @@ export default function ProfileHero({ profile, onEditClick }) {
 
       </div>
 
-      {/* Admin Notes Preview Banner if set */}
-      {profile.customMeta?.notes && (
+      {/* Admin Notes Preview Banner only if admin route is active and notes exist */}
+      {isAdminRoute && profile.customMeta?.notes && (
         <div className="mt-5 pt-4 border-t border-[#263545]/60 flex items-start gap-2.5 text-xs text-slate-300 bg-[#0E141E]/50 p-3 rounded-xl border border-[#263545]/40">
           <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           <div>

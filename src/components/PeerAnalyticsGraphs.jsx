@@ -24,7 +24,8 @@ export default function PeerAnalyticsGraphs({
   onSelectProfile, 
   activeUsername,
   onAddProfile,
-  openAddModal
+  openAddModal,
+  isAdminRoute
 }) {
   const [selectedMetric, setSelectedMetric] = useState('solved'); // solved, stars, points, badges
   const [tagFilter, setTagFilter] = useState('ALL');
@@ -99,25 +100,27 @@ export default function PeerAnalyticsGraphs({
               Peer Coding Tracker & Bar Graphs
             </h1>
             <p className="text-xs text-slate-400">
-              Live visual comparison of problem volume, badge stars, and domain mastery across all added users
+              Live visual comparison of problem volume, badge stars, and domain mastery across all tracked peers
             </p>
           </div>
         </div>
 
-        {/* Quick Add Button */}
-        <button
-          onClick={openAddModal}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#2EC866] hover:bg-[#24a152] text-black font-bold rounded-xl text-xs shadow-lg shadow-[#2EC866]/20 transition-all shrink-0"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>+ Add User to Graph</span>
-        </button>
+        {/* Quick Add Button ONLY for Admin */}
+        {isAdminRoute && (
+          <button
+            onClick={openAddModal}
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#2EC866] hover:bg-[#24a152] text-black font-bold rounded-xl text-xs shadow-lg shadow-[#2EC866]/20 transition-all shrink-0"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>+ Add User to Graph</span>
+          </button>
+        )}
       </div>
 
       {/* Group KPI Summary Ribbon */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="hr-card p-4 text-center">
-          <p className="text-[10px] uppercase font-mono text-slate-400">Tracked Users</p>
+          <p className="text-[10px] uppercase font-mono text-slate-400">Tracked Peers</p>
           <p className="text-xl sm:text-2xl font-black text-white font-mono mt-1">{peerData.length} Peers</p>
         </div>
         <div className="hr-card p-4 text-center">
@@ -143,12 +146,12 @@ export default function PeerAnalyticsGraphs({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#263545]/60">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <span>Comparative User Bar Graph</span>
+              <span>Comparative Peer Bar Graph</span>
               <span className="text-xs font-mono font-bold text-[#00EA64] bg-[#2EC866]/15 px-2 py-0.5 rounded-full border border-[#2EC866]/30">
-                {peerData.length} Added Users
+                {peerData.length} Tracked
               </span>
             </h3>
-            <p className="text-xs text-slate-400">Click any user's bar to open their individual dashboard and detailed stats</p>
+            <p className="text-xs text-slate-400">Click any peer's bar to inspect their full individual dashboard</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 bg-[#0E141E] p-1 rounded-xl border border-[#263545]">
@@ -241,28 +244,30 @@ export default function PeerAnalyticsGraphs({
           })}
         </div>
 
-        {/* Inline Quick Add Input Bar */}
-        <div className="pt-4 border-t border-[#263545]/60">
-          <form onSubmit={handleQuickAdd} className="flex flex-col sm:flex-row items-center gap-2">
-            <div className="relative flex-1 w-full">
-              <input
-                type="text"
-                placeholder="Add another HackerRank username or profile link (e.g. atkamat1204)..."
-                value={quickInput}
-                onChange={(e) => setQuickInput(e.target.value)}
-                className="w-full bg-[#0E141E] border border-[#263545] rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#2EC866] font-mono"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={isAdding || !quickInput.trim()}
-              className="w-full sm:w-auto px-4 py-2 bg-[#151F2C] hover:bg-[#2EC866] text-[#00EA64] hover:text-black font-bold rounded-xl text-xs border border-[#2EC866]/30 transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>{isAdding ? 'Fetching...' : '+ Add to Graph'}</span>
-            </button>
-          </form>
-        </div>
+        {/* Inline Quick Add Input Bar ONLY for Admin */}
+        {isAdminRoute && (
+          <div className="pt-4 border-t border-[#263545]/60">
+            <form onSubmit={handleQuickAdd} className="flex flex-col sm:flex-row items-center gap-2">
+              <div className="relative flex-1 w-full">
+                <input
+                  type="text"
+                  placeholder="Add another HackerRank username or profile link (e.g. atkamat1204)..."
+                  value={quickInput}
+                  onChange={(e) => setQuickInput(e.target.value)}
+                  className="w-full bg-[#0E141E] border border-[#263545] rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#2EC866] font-mono"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isAdding || !quickInput.trim()}
+                className="w-full sm:w-auto px-4 py-2 bg-[#151F2C] hover:bg-[#2EC866] text-[#00EA64] hover:text-black font-bold rounded-xl text-xs border border-[#2EC866]/30 transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>{isAdding ? 'Fetching...' : '+ Add to Graph'}</span>
+              </button>
+            </form>
+          </div>
+        )}
 
       </div>
 
@@ -275,7 +280,7 @@ export default function PeerAnalyticsGraphs({
             </div>
             <div>
               <h3 className="text-base font-bold text-white">
-                Domain Star Depth across Added Users (Python, C++, Java, Problem Solving, SQL)
+                Domain Star Depth across Tracked Peers (Python, C++, Java, Problem Solving, SQL)
               </h3>
               <p className="text-xs text-slate-400">Side-by-side star depth for each tracked peer across key domains</p>
             </div>
