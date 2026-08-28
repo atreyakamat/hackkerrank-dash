@@ -6,6 +6,13 @@
 [build.environment]
   NODE_VERSION = "20"
 
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["data/**"]
+
+[functions."sync-cron"]
+  schedule = "@every 10m"
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"

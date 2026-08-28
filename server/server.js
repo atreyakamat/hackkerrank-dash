@@ -15,25 +15,16 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Netlify Blobs store accessor for persistent cloud storage
+// Netlify Blobs store accessor for persistent cloud storage with strong consistency
 function getNetlifyBlobStore() {
   try {
-    return getStore('hackerrank_profiles');
+    return getStore({ name: 'hackerrank_profiles', consistency: 'strong' });
   } catch (e) {
-    return null;
-  }
-}
-
-// In serverless environments (AWS Lambda / Netlify), use /tmp if local dir is read-only
-const DATA_DIR = process.env.NETLIFY ? '/tmp' : path.join(__dirname, '../data');
-const DB_FILE = path.join(DATA_DIR, 'profiles.json');
-
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  } catch (e) {
-    // fallback
+    try {
+      return getStore('hackerrank_profiles');
+    } catch (err) {
+      return null;
+    }
   }
 }
 
@@ -83,7 +74,33 @@ export function calculateStars(slug, points) {
   return 0;
 }
 
-// In-memory cache to guarantee fast responses across lambda invocations
+// Find and read the packaged baseline data/profiles.json across environments
+function getBundledBaselineProfiles() {
+  const candidatePaths = [
+    path.join(process.cwd(), 'data/profiles.json'),
+    path.join(__dirname, '../data/profiles.json'),
+    path.join(__dirname, '../../data/profiles.json'),
+    path.join(__dirname, 'data/profiles.json'),
+    '/tmp/profiles.json'
+  ];
+
+  for (const filePath of candidatePaths) {
+    if (fs.existsSync(filePath)) {
+      try {
+        const raw = fs.readFileSync(filePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        // continue search
+      }
+    }
+  }
+  return [];
+}
+
+// In-memory cache to guarantee ultra-fast responses across lambda invocations
 let memoryProfilesCache = null;
 
 // Database helper functions with Netlify Blobs + local file persistence
@@ -92,7 +109,7 @@ export async function readDb() {
     return memoryProfilesCache;
   }
 
-  // 1. Try Netlify Blobs first (cloud persistence on Netlify)
+  // 1. Try Netlify Blobs first (cloud persistent storage on Netlify)
   const store = getNetlifyBlobStore();
   if (store) {
     try {
@@ -102,22 +119,24 @@ export async function readDb() {
         return data;
       }
     } catch (e) {
-      console.warn('Netlify Blobs read error:', e.message);
+      console.warn('[STORAGE] Netlify Blobs read error:', e.message);
     }
   }
 
-  // 2. Try Local File System
-  if (fs.existsSync(DB_FILE)) {
-    try {
-      const raw = fs.readFileSync(DB_FILE, 'utf-8');
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        memoryProfilesCache = parsed;
-        return parsed;
+  // 2. Fallback to Bundled Baseline profiles.json (packaged with repository)
+  const baseline = getBundledBaselineProfiles();
+  if (baseline.length > 0) {
+    memoryProfilesCache = baseline;
+    // Auto-seed Netlify Blobs so all subsequent Lambda instances and user updates persist
+    if (store) {
+      try {
+        await store.setJSON('profiles_list', baseline);
+        console.log(`[STORAGE] Successfully initialized Netlify Blobs with ${baseline.length} baseline profiles.`);
+      } catch (e) {
+        console.warn('[STORAGE] Could not seed Netlify Blobs:', e.message);
       }
-    } catch (e) {
-      console.error('Error reading local db file:', e);
     }
+    return baseline;
   }
 
   return [];
@@ -131,14 +150,26 @@ export async function writeDb(data) {
   if (store) {
     try {
       await store.setJSON('profiles_list', data);
+      console.log(`[STORAGE] Persisted ${data.length} profiles to Netlify Blobs.`);
     } catch (e) {
-      console.warn('Netlify Blobs write error:', e.message);
+      console.warn('[STORAGE] Netlify Blobs write error:', e.message);
     }
   }
 
-  // 2. Save to local disk if writable
+  // 2. Save to /tmp/profiles.json (ephemeral Lambda session cache)
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    fs.writeFileSync('/tmp/profiles.json', JSON.stringify(data, null, 2), 'utf-8');
+  } catch (e) {
+    // ignore
+  }
+
+  // 3. Save to local disk if writable
+  const localDb = path.join(process.cwd(), 'data/profiles.json');
+  try {
+    if (!fs.existsSync(path.dirname(localDb))) {
+      fs.mkdirSync(path.dirname(localDb), { recursive: true });
+    }
+    fs.writeFileSync(localDb, JSON.stringify(data, null, 2), 'utf-8');
   } catch (e) {
     // ignore on read-only environments
   }
@@ -354,8 +385,10 @@ export async function autoSyncProfiles() {
   }
 }
 
-// Run 10-minute auto-sync timer (10 * 60 * 1000 ms = 600,000 ms)
-setInterval(autoSyncProfiles, 10 * 60 * 1000);
+// Run 10-minute auto-sync timer in local development (10 * 60 * 1000 ms = 600,000 ms)
+if (!process.env.NETLIFY) {
+  setInterval(autoSyncProfiles, 10 * 60 * 1000);
+}
 
 // Admin Password Configuration
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Nanami@1304';

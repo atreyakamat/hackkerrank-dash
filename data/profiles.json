@@ -35,7 +35,7 @@
         "upcoming_level": null,
         "solved": 1,
         "total_challenges": 64,
-        "hacker_rank": 2614646
+        "hacker_rank": 2614652
       }
     ],
     "scores": [
@@ -67,7 +67,7 @@
         "practice": {
           "hacker_id": 23404064,
           "score": 0,
-          "rank": 5965264,
+          "rank": 5965278,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -109,7 +109,7 @@
         "practice": {
           "hacker_id": 23404064,
           "score": 0,
-          "rank": 451143,
+          "rank": 451146,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -130,7 +130,7 @@
         "practice": {
           "hacker_id": 23404064,
           "score": 0,
-          "rank": 4658041,
+          "rank": 4658055,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -151,7 +151,7 @@
         "practice": {
           "hacker_id": 23404064,
           "score": 0,
-          "rank": 1791822,
+          "rank": 1791827,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -172,7 +172,7 @@
         "practice": {
           "hacker_id": 23404064,
           "score": 0,
-          "rank": 106885,
+          "rank": 106887,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -193,7 +193,7 @@
         "practice": {
           "hacker_id": 23404064,
           "score": 3,
-          "rank": 2614646,
+          "rank": 2614652,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -235,7 +235,7 @@
         "practice": {
           "hacker_id": 23404064,
           "score": 0,
-          "rank": 2047181,
+          "rank": 2047216,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -256,7 +256,7 @@
         "practice": {
           "hacker_id": 23404064,
           "score": 0,
-          "rank": 3235976,
+          "rank": 3235993,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -361,7 +361,7 @@
         "practice": {
           "hacker_id": 23404064,
           "score": 0,
-          "rank": 2515509,
+          "rank": 2515512,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -403,7 +403,7 @@
         "practice": {
           "hacker_id": 23404064,
           "score": 0,
-          "rank": 1435589,
+          "rank": 1435596,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -424,7 +424,7 @@
         "practice": {
           "hacker_id": 23404064,
           "score": 0,
-          "rank": 58679,
+          "rank": 58680,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -458,7 +458,7 @@
         "practice": {
           "hacker_id": 23404064,
           "score": 3,
-          "rank": 2614646,
+          "rank": 2614652,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -486,8 +486,8 @@
     "heatmap": {
       "2026-08-28": 1
     },
-    "lastSyncedAt": "2026-08-28T06:12:17.592Z",
-    "lastSuccessfulSyncAt": "2026-08-28T06:12:17.592Z",
+    "lastSyncedAt": "2026-08-28T06:30:12.560Z",
+    "lastSuccessfulSyncAt": "2026-08-28T06:30:12.560Z",
     "lastSyncStatus": "success",
     "lastSyncError": null,
     "customMeta": {
@@ -546,7 +546,7 @@
         "practice": {
           "hacker_id": 21973402,
           "score": 0,
-          "rank": 5965264,
+          "rank": 5965278,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -588,7 +588,7 @@
         "practice": {
           "hacker_id": 21973402,
           "score": 0,
-          "rank": 451143,
+          "rank": 451146,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -609,7 +609,7 @@
         "practice": {
           "hacker_id": 21973402,
           "score": 0,
-          "rank": 4658041,
+          "rank": 4658055,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -630,7 +630,7 @@
         "practice": {
           "hacker_id": 21973402,
           "score": 0,
-          "rank": 1791822,
+          "rank": 1791827,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -651,7 +651,7 @@
         "practice": {
           "hacker_id": 21973402,
           "score": 0,
-          "rank": 106885,
+          "rank": 106887,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -672,7 +672,7 @@
         "practice": {
           "hacker_id": 21973402,
           "score": 0,
-          "rank": 3047517,
+          "rank": 3047524,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -714,7 +714,7 @@
         "practice": {
           "hacker_id": 21973402,
           "score": 0,
-          "rank": 2047181,
+          "rank": 2047216,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -735,7 +735,7 @@
         "practice": {
           "hacker_id": 21973402,
           "score": 0,
-          "rank": 3235976,
+          "rank": 3235993,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -840,7 +840,7 @@
         "practice": {
           "hacker_id": 21973402,
           "score": 0,
-          "rank": 2515509,
+          "rank": 2515512,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -882,7 +882,7 @@
         "practice": {
           "hacker_id": 21973402,
           "score": 0,
-          "rank": 1435589,
+          "rank": 1435596,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -903,7 +903,7 @@
         "practice": {
           "hacker_id": 21973402,
           "score": 0,
-          "rank": 58679,
+          "rank": 58680,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -933,8 +933,8 @@
     "certifications": [],
     "submissions": [],
     "heatmap": {},
-    "lastSyncedAt": "2026-08-28T06:12:22.783Z",
-    "lastSuccessfulSyncAt": "2026-08-28T06:12:22.783Z",
+    "lastSyncedAt": "2026-08-28T06:30:13.725Z",
+    "lastSuccessfulSyncAt": "2026-08-28T06:30:13.725Z",
     "lastSyncStatus": "success",
     "lastSyncError": null,
     "customMeta": {
@@ -976,7 +976,7 @@
         "solved": 5,
         "total_challenges": 563,
         "track_total_score": 0,
-        "hacker_rank": 2891063,
+        "hacker_rank": 2891074,
         "stars": 1,
         "level": 1,
         "current_points": 41,
@@ -999,7 +999,7 @@
         "upcoming_level": null,
         "solved": 1,
         "total_challenges": 25,
-        "hacker_rank": 1169904
+        "hacker_rank": 1169911
       },
       {
         "badge_category": "HackerBadge::Domain",
@@ -1011,7 +1011,7 @@
         "total_points": 500,
         "solved": 3,
         "total_challenges": 50,
-        "hacker_rank": 2819722
+        "hacker_rank": 2819732
       },
       {
         "badge_category": "HackerBadge::Domain",
@@ -1023,7 +1023,7 @@
         "total_points": 500,
         "solved": 1,
         "total_challenges": 50,
-        "hacker_rank": 1627459
+        "hacker_rank": 1627472
       }
     ],
     "scores": [
@@ -1055,7 +1055,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 31,
-          "rank": 2819722,
+          "rank": 2819732,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1097,7 +1097,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 0,
-          "rank": 451143,
+          "rank": 451146,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1118,7 +1118,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 0,
-          "rank": 4658041,
+          "rank": 4658055,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1139,7 +1139,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 0,
-          "rank": 1791822,
+          "rank": 1791827,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1160,7 +1160,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 0,
-          "rank": 106885,
+          "rank": 106887,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1181,7 +1181,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 0,
-          "rank": 3047517,
+          "rank": 3047524,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1223,7 +1223,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 10,
-          "rank": 1627459,
+          "rank": 1627472,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1244,7 +1244,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 0,
-          "rank": 3235976,
+          "rank": 3235993,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1349,7 +1349,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 0,
-          "rank": 2515509,
+          "rank": 2515512,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1391,7 +1391,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 5,
-          "rank": 1169904,
+          "rank": 1169911,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1412,7 +1412,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 0,
-          "rank": 58679,
+          "rank": 58680,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1446,7 +1446,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 31,
-          "rank": 2819722,
+          "rank": 2819732,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1467,7 +1467,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 10,
-          "rank": 1627459,
+          "rank": 1627472,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1488,7 +1488,7 @@
         "practice": {
           "hacker_id": 22845455,
           "score": 5,
-          "rank": 1169904,
+          "rank": 1169911,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1549,8 +1549,8 @@
       "2026-08-27": 3,
       "2026-08-26": 5
     },
-    "lastSyncedAt": "2026-08-28T06:12:23.860Z",
-    "lastSuccessfulSyncAt": "2026-08-28T06:12:23.860Z",
+    "lastSyncedAt": "2026-08-28T06:30:14.674Z",
+    "lastSuccessfulSyncAt": "2026-08-28T06:30:14.674Z",
     "lastSyncStatus": "success",
     "lastSyncError": null,
     "customMeta": {
@@ -1596,7 +1596,7 @@
         "upcoming_level": null,
         "solved": 1,
         "total_challenges": 64,
-        "hacker_rank": 2614646
+        "hacker_rank": 2614652
       },
       {
         "badge_category": "HackerBadge::Domain",
@@ -1614,7 +1614,7 @@
         "upcoming_level": "gold",
         "solved": 18,
         "total_challenges": 115,
-        "hacker_rank": 523823
+        "hacker_rank": 523826
       }
     ],
     "scores": [
@@ -1646,7 +1646,7 @@
         "practice": {
           "hacker_id": 32898388,
           "score": 0,
-          "rank": 5965264,
+          "rank": 5965278,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1688,7 +1688,7 @@
         "practice": {
           "hacker_id": 32898388,
           "score": 0,
-          "rank": 451143,
+          "rank": 451146,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1709,7 +1709,7 @@
         "practice": {
           "hacker_id": 32898388,
           "score": 275,
-          "rank": 523823,
+          "rank": 523826,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1730,7 +1730,7 @@
         "practice": {
           "hacker_id": 32898388,
           "score": 0,
-          "rank": 1791822,
+          "rank": 1791827,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1751,7 +1751,7 @@
         "practice": {
           "hacker_id": 32898388,
           "score": 0,
-          "rank": 106885,
+          "rank": 106887,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1772,7 +1772,7 @@
         "practice": {
           "hacker_id": 32898388,
           "score": 3,
-          "rank": 2614646,
+          "rank": 2614652,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1814,7 +1814,7 @@
         "practice": {
           "hacker_id": 32898388,
           "score": 0,
-          "rank": 2047181,
+          "rank": 2047218,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1835,7 +1835,7 @@
         "practice": {
           "hacker_id": 32898388,
           "score": 0,
-          "rank": 3235976,
+          "rank": 3235993,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1940,7 +1940,7 @@
         "practice": {
           "hacker_id": 32898388,
           "score": 0,
-          "rank": 2515509,
+          "rank": 2515512,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -1982,7 +1982,7 @@
         "practice": {
           "hacker_id": 32898388,
           "score": 0,
-          "rank": 1435589,
+          "rank": 1435596,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2003,7 +2003,7 @@
         "practice": {
           "hacker_id": 32898388,
           "score": 0,
-          "rank": 58679,
+          "rank": 58680,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2037,7 +2037,7 @@
         "practice": {
           "hacker_id": 32898388,
           "score": 275,
-          "rank": 523823,
+          "rank": 523826,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2058,7 +2058,7 @@
         "practice": {
           "hacker_id": 32898388,
           "score": 3,
-          "rank": 2614646,
+          "rank": 2614652,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2217,8 +2217,8 @@
       "2026-08-27": 1,
       "2026-08-28": 1
     },
-    "lastSyncedAt": "2026-08-28T06:12:24.984Z",
-    "lastSuccessfulSyncAt": "2026-08-28T06:12:24.984Z",
+    "lastSyncedAt": "2026-08-28T06:30:15.586Z",
+    "lastSuccessfulSyncAt": "2026-08-28T06:30:15.586Z",
     "lastSyncStatus": "success",
     "lastSyncError": null,
     "customMeta": {
@@ -2264,7 +2264,7 @@
         "upcoming_level": null,
         "solved": 0,
         "total_challenges": 64,
-        "hacker_rank": 3047517
+        "hacker_rank": 3047524
       },
       {
         "badge_category": "HackerBadge::Domain",
@@ -2282,7 +2282,7 @@
         "upcoming_level": null,
         "solved": 4,
         "total_challenges": 58,
-        "hacker_rank": 2788081
+        "hacker_rank": 2788098
       }
     ],
     "scores": [
@@ -2314,7 +2314,7 @@
         "practice": {
           "hacker_id": 32858946,
           "score": 0,
-          "rank": 5965264,
+          "rank": 5965278,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2356,7 +2356,7 @@
         "practice": {
           "hacker_id": 32858946,
           "score": 0,
-          "rank": 451143,
+          "rank": 451146,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2377,7 +2377,7 @@
         "practice": {
           "hacker_id": 32858946,
           "score": 0,
-          "rank": 4658042,
+          "rank": 4658055,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2398,7 +2398,7 @@
         "practice": {
           "hacker_id": 32858946,
           "score": 0,
-          "rank": 1791822,
+          "rank": 1791827,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2419,7 +2419,7 @@
         "practice": {
           "hacker_id": 32858946,
           "score": 0,
-          "rank": 106885,
+          "rank": 106887,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2440,7 +2440,7 @@
         "practice": {
           "hacker_id": 32858946,
           "score": 0,
-          "rank": 3047517,
+          "rank": 3047524,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2482,7 +2482,7 @@
         "practice": {
           "hacker_id": 32858946,
           "score": 0,
-          "rank": 2047181,
+          "rank": 2047218,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2503,7 +2503,7 @@
         "practice": {
           "hacker_id": 32858946,
           "score": 40,
-          "rank": 2788081,
+          "rank": 2788098,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2608,7 +2608,7 @@
         "practice": {
           "hacker_id": 32858946,
           "score": 0,
-          "rank": 2515509,
+          "rank": 2515512,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2650,7 +2650,7 @@
         "practice": {
           "hacker_id": 32858946,
           "score": 0,
-          "rank": 1435589,
+          "rank": 1435596,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2671,7 +2671,7 @@
         "practice": {
           "hacker_id": 32858946,
           "score": 0,
-          "rank": 58679,
+          "rank": 58680,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2705,7 +2705,7 @@
         "practice": {
           "hacker_id": 32858946,
           "score": 40,
-          "rank": 2788081,
+          "rank": 2788098,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2762,8 +2762,8 @@
       "2026-08-05": 5,
       "2026-08-28": 1
     },
-    "lastSyncedAt": "2026-08-28T06:12:25.699Z",
-    "lastSuccessfulSyncAt": "2026-08-28T06:12:25.699Z",
+    "lastSyncedAt": "2026-08-28T06:30:16.562Z",
+    "lastSuccessfulSyncAt": "2026-08-28T06:30:16.562Z",
     "lastSyncStatus": "success",
     "lastSyncError": null,
     "customMeta": {
@@ -2803,7 +2803,7 @@
         "total_points": 500,
         "solved": 16,
         "total_challenges": 50,
-        "hacker_rank": 923418
+        "hacker_rank": 923421
       },
       {
         "badge_category": "HackerBadge::Domain",
@@ -2815,7 +2815,7 @@
         "total_points": 500,
         "solved": 3,
         "total_challenges": 50,
-        "hacker_rank": 879002
+        "hacker_rank": 879004
       },
       {
         "badge_category": "HackerBadge::Domain",
@@ -2827,7 +2827,7 @@
         "total_points": 500,
         "solved": 2,
         "total_challenges": 50,
-        "hacker_rank": 1958803
+        "hacker_rank": 1958806
       }
     ],
     "scores": [
@@ -2859,7 +2859,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 0,
-          "rank": 5965264,
+          "rank": 5965278,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2901,7 +2901,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 0,
-          "rank": 451143,
+          "rank": 451146,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2922,7 +2922,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 155,
-          "rank": 923418,
+          "rank": 923421,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2943,7 +2943,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 30,
-          "rank": 879002,
+          "rank": 879004,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2964,7 +2964,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 0,
-          "rank": 106885,
+          "rank": 106887,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -2985,7 +2985,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 18,
-          "rank": 1958803,
+          "rank": 1958806,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -3027,7 +3027,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 0,
-          "rank": 2047181,
+          "rank": 2047218,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -3048,7 +3048,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 0,
-          "rank": 3235976,
+          "rank": 3235994,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -3153,7 +3153,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 0,
-          "rank": 2515509,
+          "rank": 2515512,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -3195,7 +3195,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 0,
-          "rank": 1435589,
+          "rank": 1435596,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -3216,7 +3216,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 0,
-          "rank": 58679,
+          "rank": 58680,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -3250,7 +3250,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 155,
-          "rank": 923418,
+          "rank": 923421,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -3271,7 +3271,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 30,
-          "rank": 879002,
+          "rank": 879004,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -3292,7 +3292,7 @@
         "practice": {
           "hacker_id": 24234803,
           "score": 18,
-          "rank": 1958803,
+          "rank": 1958806,
           "location_on_leaderboard": []
         },
         "contest": {
@@ -3460,8 +3460,8 @@
       "2026-08-18": 7,
       "2026-08-28": 6
     },
-    "lastSyncedAt": "2026-08-28T06:12:26.221Z",
-    "lastSuccessfulSyncAt": "2026-08-28T06:12:26.221Z",
+    "lastSyncedAt": "2026-08-28T06:30:17.466Z",
+    "lastSuccessfulSyncAt": "2026-08-28T06:30:17.466Z",
     "lastSyncStatus": "success",
     "lastSyncError": null,
     "customMeta": {
