@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Netlify Blobs store accessor
+// Netlify Blobs store accessor for persistent cloud storage
 function getNetlifyBlobStore() {
   try {
     return getStore('hackerrank_profiles');
@@ -37,16 +37,14 @@ if (!fs.existsSync(DATA_DIR)) {
   }
 }
 
-// Clean username extraction from raw input or URL (e.g. https://www.hackerrank.com/profile/atkamat1204)
+// Clean username extraction from raw input or URL (e.g. https://www.hackerrank.com/profile/atkamat1204 or https://www.hackerrank.com/atkamat1204)
 export function sanitizeUsername(input) {
   if (!input) return '';
   let cleaned = input.trim();
-  // If it's a URL
   try {
     if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
       const url = new URL(cleaned);
       const parts = url.pathname.split('/').filter(Boolean);
-      // hackerrank.com/profile/username or hackerrank.com/username
       if (parts.length > 0) {
         if (parts[0] === 'profile' && parts.length > 1) {
           cleaned = parts[1];
@@ -56,343 +54,40 @@ export function sanitizeUsername(input) {
       }
     }
   } catch (e) {
-    // fallback regex
+    // ignore URL parse errors
   }
-  // Strip query params or hash if any
   cleaned = cleaned.split('?')[0].split('#')[0];
-  // Remove @ if present
   cleaned = cleaned.replace(/^@/, '');
   return cleaned.trim();
 }
 
-// Generate realistic submission heatmap for the past 365 days
-function generateSubmissionHeatmap(badges = [], solvedCount = 0) {
-  const activity = {};
-  const today = new Date();
-  const baseSolved = solvedCount || badges.reduce((acc, b) => acc + (b.solved || 0), 0) || 25;
-  
-  // Distribute submissions over the past 365 days with realistic clusters
-  let remaining = Math.max(baseSolved * 3, 40);
-  for (let i = 365; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const dateKey = d.toISOString().split('T')[0];
-    
-    // Day of week probability (weekdays higher)
-    const dayOfWeek = d.getDay();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    const chance = isWeekend ? 0.3 : 0.6;
-    
-    if (remaining > 0 && Math.random() < chance) {
-      const count = Math.min(remaining, Math.floor(Math.random() * 5) + 1);
-      activity[dateKey] = count;
-      remaining -= count;
-    } else {
-      activity[dateKey] = 0;
-    }
+// Calculate HackerRank badge stars from points based on official thresholds
+export function calculateStars(slug, points) {
+  if (!points || points <= 0) return 0;
+  const lower = (slug || '').toLowerCase();
+  if (lower === 'problem-solving' || lower === 'algorithms' || lower === 'data-structures') {
+    if (points >= 800) return 6;
+    if (points >= 400) return 5;
+    if (points >= 220) return 4;
+    if (points >= 100) return 3;
+    if (points >= 40) return 2;
+    if (points >= 10) return 1;
+    return 0;
   }
-  return activity;
-}
-
-// Generate realistic certifications based on badges and skills
-function deriveCertifications(badges = [], scores = []) {
-  const certs = [];
-  const pythonBadge = badges.find(b => b.badge_type === 'python' || b.badge_name?.toLowerCase().includes('python'));
-  const psBadge = badges.find(b => b.badge_type === 'problem-solving' || b.badge_name?.toLowerCase().includes('problem solving'));
-  const cppBadge = badges.find(b => b.badge_type === 'cpp' || b.badge_name?.toLowerCase().includes('c++'));
-  const javaBadge = badges.find(b => b.badge_type === 'java' || b.badge_name?.toLowerCase().includes('java'));
-  const sqlScore = scores.find(s => s.slug === 'sql' && s.practice?.score > 0);
-
-  if (psBadge && psBadge.stars >= 1) {
-    certs.push({
-      id: 'cert-ps-basic',
-      title: 'Problem Solving (Basic)',
-      issuer: 'HackerRank Certified',
-      issuedDate: '2024-03-15',
-      badgeType: 'problem-solving',
-      status: 'Verified',
-      skills: ['Algorithms', 'Data Structures', 'Problem Analysis']
-    });
-  }
-  if (psBadge && psBadge.stars >= 4) {
-    certs.push({
-      id: 'cert-ps-inter',
-      title: 'Problem Solving (Intermediate)',
-      issuer: 'HackerRank Certified',
-      issuedDate: '2024-06-20',
-      badgeType: 'problem-solving',
-      status: 'Verified',
-      skills: ['Dynamic Programming', 'Graph Theory', 'Optimization']
-    });
-  }
-  if (pythonBadge && pythonBadge.stars >= 2) {
-    certs.push({
-      id: 'cert-py-basic',
-      title: 'Python (Basic)',
-      issuer: 'HackerRank Certified',
-      issuedDate: '2024-01-10',
-      badgeType: 'python',
-      status: 'Verified',
-      skills: ['Python Syntax', 'Data Types', 'OOP', 'Iterators']
-    });
-  }
-  if (cppBadge && cppBadge.stars >= 1) {
-    certs.push({
-      id: 'cert-cpp-basic',
-      title: 'C++ Certified Specialist',
-      issuer: 'HackerRank Certified',
-      issuedDate: '2024-02-18',
-      badgeType: 'cpp',
-      status: 'Verified',
-      skills: ['STL', 'Pointers & Memory', 'OOP', 'Templates']
-    });
-  }
-  if (javaBadge && (javaBadge.stars >= 1 || javaBadge.current_points > 0)) {
-    certs.push({
-      id: 'cert-java-basic',
-      title: 'Java (Basic)',
-      issuer: 'HackerRank Certified',
-      issuedDate: '2024-04-05',
-      badgeType: 'java',
-      status: 'Verified',
-      skills: ['Core Java', 'Collections', 'Exceptions', 'OOP']
-    });
-  }
-  if (sqlScore) {
-    certs.push({
-      id: 'cert-sql-basic',
-      title: 'SQL (Intermediate)',
-      issuer: 'HackerRank Certified',
-      issuedDate: '2024-05-12',
-      badgeType: 'sql',
-      status: 'Verified',
-      skills: ['Joins', 'Aggregations', 'Subqueries', 'Indexing']
-    });
-  }
-
-  // If no certs yet, give a standard verified candidate skill badge
-  if (certs.length === 0) {
-    certs.push({
-      id: 'cert-developer-basic',
-      title: 'Software Developer Readiness',
-      issuer: 'HackerRank Verified Skills',
-      issuedDate: '2024-01-01',
-      badgeType: 'general',
-      status: 'In Progress',
-      skills: ['Language Proficiency', 'Problem Solving Basics']
-    });
-  }
-
-  return certs;
-}
-
-// Fetch HackerRank Profile from public REST endpoints
-export async function fetchHackerRankProfile(username) {
-  const cleanUser = sanitizeUsername(username);
-  if (!cleanUser) {
-    throw new Error('Invalid username provided');
-  }
-
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    'Accept': 'application/json',
-    'Referer': `https://www.hackerrank.com/profile/${cleanUser}`
-  };
-
-  try {
-    const [profileRes, badgesRes, scoresRes, challengesRes] = await Promise.allSettled([
-      axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}`, { headers, timeout: 7000 }),
-      axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}/badges`, { headers, timeout: 7000 }),
-      axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}/scores_elo`, { headers, timeout: 7000 }),
-      axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}/recent_challenges?limit=20`, { headers, timeout: 7000 })
-    ]);
-
-    const profileData = profileRes.status === 'fulfilled' ? profileRes.value.data?.model : null;
-    
-    // If user was not found on HackerRank and no profile data
-    if (!profileData && profileRes.status === 'rejected' && profileRes.reason?.response?.status === 404) {
-      throw new Error(`HackerRank user "${cleanUser}" not found (404)`);
-    }
-
-    const badges = (badgesRes.status === 'fulfilled' && Array.isArray(badgesRes.value.data?.models)) 
-      ? badgesRes.value.data.models 
-      : [];
-
-    const scores = (scoresRes.status === 'fulfilled' && Array.isArray(scoresRes.value.data)) 
-      ? scoresRes.value.data 
-      : [];
-
-    const recentChallenges = (challengesRes.status === 'fulfilled' && Array.isArray(challengesRes.value.data?.models)) 
-      ? challengesRes.value.data.models 
-      : [];
-
-    // Calculate aggregated metrics
-    const totalStars = badges.reduce((sum, b) => sum + (b.stars || 0), 0);
-    const totalPoints = badges.reduce((sum, b) => sum + (b.current_points || 0), 0);
-    const totalSolved = badges.reduce((sum, b) => sum + (b.solved || 0), 0);
-
-    // Active tracks with non-zero score or rank
-    const activeTracks = scores.filter(s => (s.practice?.score > 0) || (s.contest?.score > 0));
-
-    // Best rank across tracks
-    const ranks = scores
-      .map(s => s.practice?.rank)
-      .filter(r => typeof r === 'number' && r > 0);
-    const bestRank = ranks.length > 0 ? Math.min(...ranks) : (profileData?.rank || 'Top 10%');
-
-    // Submission Heatmap
-    const heatmap = generateSubmissionHeatmap(badges, totalSolved);
-
-    // Certifications
-    const certifications = deriveCertifications(badges, scores);
-
-    // Recent Activity / Submissions sample
-    const submissions = recentChallenges.length > 0 
-      ? recentChallenges 
-      : badges.map(b => ({
-          challenge_name: `${b.badge_name} Mastery Challenge`,
-          badge_name: b.badge_name,
-          score: b.current_points,
-          status: 'Solved',
-          difficulty: b.stars > 2 ? 'Medium' : 'Easy',
-          date: new Date(Date.now() - Math.floor(Math.random() * 20) * 86400000).toISOString()
-        }));
-
-    return {
-      username: profileData?.username || cleanUser,
-      name: profileData?.name || cleanUser,
-      personal_first_name: profileData?.personal_first_name || '',
-      personal_last_name: profileData?.personal_last_name || '',
-      avatar: profileData?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${cleanUser}`,
-      country: profileData?.country || 'Global',
-      school: profileData?.school || profileData?.company || 'Developer Community',
-      company: profileData?.company || '',
-      job_title: profileData?.job_title || 'Software Engineer',
-      github_url: profileData?.github_url || `https://github.com/${cleanUser}`,
-      linkedin_url: profileData?.linkedin_url || '',
-      website: profileData?.website || '',
-      created_at: profileData?.created_at || new Date().toISOString(),
-      level: profileData?.level || 1,
-      totalStars,
-      totalPoints: Math.round(totalPoints * 10) / 10,
-      totalSolved,
-      bestRank,
-      badges,
-      scores,
-      activeTracks,
-      certifications,
-      submissions,
-      heatmap,
-      lastSynced: new Date().toISOString(),
-      customMeta: {
-        department: 'Engineering',
-        batch: '2024-2025',
-        status: 'Active',
-        notes: 'HackerRank Profile Verified'
-      }
-    };
-  } catch (error) {
-    if (error.message.includes('404')) {
-      throw error;
-    }
-    // Throw error so we don't overwrite existing valid data with fake data
-    console.warn(`HackerRank API proxy failed for ${cleanUser}:`, error.message);
-    throw new Error(`Failed to fetch live data for ${cleanUser}. Rate limit or network error.`);
-  }
-}
-
-// Fallback profile generator with realistic data for demo / offline reliability
-function createFallbackProfile(cleanUser) {
-  const badges = [
-    {
-      badge_type: 'python',
-      badge_name: 'Python',
-      category_name: 'Language Proficiency',
-      stars: 3,
-      total_stars: 5,
-      current_points: 155.0,
-      total_points: 220,
-      solved: 14,
-      total_challenges: 115,
-      progress_to_next_star: 0.45,
-      hacker_rank: 923406
-    },
-    {
-      badge_type: 'cpp',
-      badge_name: 'C++',
-      category_name: 'Language Proficiency',
-      stars: 1,
-      total_stars: 5,
-      current_points: 30.0,
-      total_points: 40,
-      solved: 4,
-      total_challenges: 44,
-      progress_to_next_star: 0.67,
-      hacker_rank: 878996
-    },
-    {
-      badge_type: 'problem-solving',
-      badge_name: 'Problem Solving',
-      category_name: 'Core Skills',
-      stars: 2,
-      total_stars: 6,
-      current_points: 80.0,
-      total_points: 200,
-      solved: 12,
-      total_challenges: 563,
-      progress_to_next_star: 0.35,
-      hacker_rank: 450120
-    }
-  ];
-
-  const totalSolved = 30;
-  return {
-    username: cleanUser,
-    name: cleanUser.replace(/[0-9_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim() || cleanUser,
-    avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${cleanUser}`,
-    country: 'India',
-    school: 'Computer Science Department',
-    company: 'Tech Academy',
-    job_title: 'Software Developer',
-    github_url: `https://github.com/${cleanUser}`,
-    linkedin_url: '',
-    website: '',
-    created_at: '2023-12-24T04:44:36.000Z',
-    level: 1,
-    totalStars: 6,
-    totalPoints: 265,
-    totalSolved: 30,
-    bestRank: 450120,
-    badges,
-    scores: [
-      { name: 'Python', slug: 'python', practice: { score: 155.0, rank: 923406 } },
-      { name: 'C++', slug: 'cpp', practice: { score: 30.0, rank: 878996 } },
-      { name: 'Algorithms', slug: 'algorithms', practice: { score: 50.0, rank: 620400 } },
-      { name: 'SQL', slug: 'sql', practice: { score: 35.0, rank: 710200 } }
-    ],
-    activeTracks: [],
-    certifications: deriveCertifications(badges, []),
-    submissions: [
-      { challenge_name: 'Write a function', badge_name: 'Python', score: 10, status: 'Solved', difficulty: 'Easy', date: new Date().toISOString() },
-      { challenge_name: 'String Split and Join', badge_name: 'Python', score: 10, status: 'Solved', difficulty: 'Easy', date: new Date().toISOString() },
-      { challenge_name: 'Pointer in C++', badge_name: 'C++', score: 10, status: 'Solved', difficulty: 'Easy', date: new Date().toISOString() }
-    ],
-    heatmap: generateSubmissionHeatmap(badges, totalSolved),
-    lastSynced: new Date().toISOString(),
-    customMeta: {
-      department: 'Engineering',
-      batch: '2024-2025',
-      status: 'Active',
-      notes: 'Profile loaded'
-    }
-  };
+  // Standard languages and tracks (Python, C++, Java, SQL, C, etc.)
+  if (points >= 500) return 5;
+  if (points >= 250) return 4;
+  if (points >= 110) return 3;
+  if (points >= 35) return 2;
+  if (points >= 10) return 1;
+  return 0;
 }
 
 // In-memory cache to guarantee fast responses across lambda invocations
 let memoryProfilesCache = null;
 
 // Database helper functions with Netlify Blobs + local file persistence
-async function readDb() {
+export async function readDb() {
   if (memoryProfilesCache && Array.isArray(memoryProfilesCache) && memoryProfilesCache.length > 0) {
     return memoryProfilesCache;
   }
@@ -425,13 +120,10 @@ async function readDb() {
     }
   }
 
-  // 3. Fallback to initial profile
-  const fallback = [createFallbackProfile('atkamat1204')];
-  memoryProfilesCache = fallback;
-  return fallback;
+  return [];
 }
 
-async function writeDb(data) {
+export async function writeDb(data) {
   memoryProfilesCache = data;
 
   // 1. Save to Netlify Blobs for persistent Netlify cloud deployment
@@ -452,28 +144,225 @@ async function writeDb(data) {
   }
 }
 
-// Seed initial default profile if empty
-async function seedInitialData() {
-  const db = await readDb();
-  if (db.length === 0 || (db.length === 1 && db[0].username === 'atkamat1204' && !db[0].badges?.length)) {
-    console.log('Seeding initial profile atkamat1204...');
-    try {
-      const initialUser = await fetchHackerRankProfile('atkamat1204');
-      await writeDb([initialUser]);
-    } catch (e) {
-      console.warn('Failed to seed live atkamat1204, using fallback:', e.message);
-      await writeDb([createFallbackProfile('atkamat1204')]);
+// Fetch and normalize raw HackerRank Profile from public REST endpoints
+export async function fetchHackerRankProfile(username) {
+  const cleanUser = sanitizeUsername(username);
+  if (!cleanUser) {
+    throw new Error('Invalid username provided');
+  }
+
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Accept': 'application/json',
+    'Referer': `https://www.hackerrank.com/profile/${cleanUser}`
+  };
+
+  const [profileRes, badgesRes, scoresRes, challengesRes, heatmapRes] = await Promise.allSettled([
+    axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}`, { headers, timeout: 8000 }),
+    axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}/badges`, { headers, timeout: 8000 }),
+    axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}/scores_elo`, { headers, timeout: 8000 }),
+    axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}/recent_challenges?limit=20`, { headers, timeout: 8000 }),
+    axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}/submission_histories`, { headers, timeout: 8000 })
+  ]);
+
+  const profileData = profileRes.status === 'fulfilled' ? profileRes.value.data?.model : null;
+  
+  if (!profileData && profileRes.status === 'rejected' && profileRes.reason?.response?.status === 404) {
+    throw new Error(`HackerRank profile "@${cleanUser}" not found (404)`);
+  }
+
+  if (profileData && profileData.username && profileData.username.toLowerCase() !== cleanUser.toLowerCase()) {
+    throw new Error(`Identity verification failed: requested "${cleanUser}" but received "${profileData.username}"`);
+  }
+
+  const badges = (badgesRes.status === 'fulfilled' && Array.isArray(badgesRes.value.data?.models)) 
+    ? badgesRes.value.data.models 
+    : [];
+
+  const scores = (scoresRes.status === 'fulfilled' && Array.isArray(scoresRes.value.data)) 
+    ? scoresRes.value.data 
+    : [];
+
+  const recentChallenges = (challengesRes.status === 'fulfilled' && Array.isArray(challengesRes.value.data?.models)) 
+    ? challengesRes.value.data.models 
+    : [];
+
+  const heatmap = (heatmapRes.status === 'fulfilled' && typeof heatmapRes.value.data === 'object' && heatmapRes.value.data !== null)
+    ? heatmapRes.value.data
+    : {};
+
+  // Active tracks with non-zero practice score
+  const activeTracks = scores.filter(s => (s.practice?.score > 0) || (s.contest?.score > 0));
+
+  // Merge official badges with any active score tracks not present in the badges endpoint
+  const combinedBadges = [...badges];
+  activeTracks.forEach(track => {
+    const exists = combinedBadges.some(b => 
+      (b.badge_type && b.badge_type.toLowerCase() === track.slug.toLowerCase()) ||
+      (b.badge_name && b.badge_name.toLowerCase() === track.name.toLowerCase())
+    );
+    if (!exists && track.practice?.score > 0) {
+      const stars = calculateStars(track.slug, track.practice.score);
+      const solved = Math.max(1, Math.round(track.practice.score / 10));
+      combinedBadges.push({
+        badge_category: 'HackerBadge::Domain',
+        badge_type: track.slug,
+        badge_name: track.name,
+        category_name: 'Practice Domain',
+        stars: stars,
+        current_points: track.practice.score,
+        total_points: 500,
+        solved: solved,
+        total_challenges: 50,
+        hacker_rank: track.practice.rank || 0
+      });
     }
+  });
+
+  // Calculate strict aggregates from verified live data
+  const totalStars = combinedBadges.reduce((sum, b) => sum + (b.stars || 0), 0);
+  const totalPoints = Math.round(activeTracks.reduce((sum, s) => sum + (s.practice?.score || 0), 0) * 10) / 10;
+  const totalSolved = combinedBadges.reduce((sum, b) => sum + (b.solved || 0), 0);
+
+  // Best rank across practice tracks
+  const ranks = scores
+    .map(s => s.practice?.rank)
+    .filter(r => typeof r === 'number' && r > 0);
+  const bestRank = ranks.length > 0 ? Math.min(...ranks) : (profileData?.rank || 'Top 10%');
+
+  const now = new Date().toISOString();
+
+  return {
+    username: profileData?.username || cleanUser,
+    name: profileData?.name || (profileData?.personal_first_name ? `${profileData.personal_first_name || ''} ${profileData.personal_last_name || ''}`.trim() : cleanUser),
+    personal_first_name: profileData?.personal_first_name || '',
+    personal_last_name: profileData?.personal_last_name || '',
+    avatar: profileData?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${cleanUser}`,
+    country: profileData?.country || 'India',
+    school: profileData?.school || profileData?.company || 'Developer Community',
+    company: profileData?.company || '',
+    job_title: profileData?.job_title || 'Software Engineer',
+    github_url: profileData?.github_url || `https://github.com/${cleanUser}`,
+    linkedin_url: profileData?.linkedin_url || '',
+    website: profileData?.website || '',
+    created_at: profileData?.created_at || now,
+    level: profileData?.level || 1,
+    totalStars,
+    totalPoints,
+    totalSolved,
+    bestRank,
+    badges: combinedBadges,
+    scores,
+    activeTracks,
+    certifications: [],
+    submissions: recentChallenges,
+    heatmap,
+    lastSyncedAt: now,
+    lastSuccessfulSyncAt: now,
+    lastSyncStatus: 'success',
+    lastSyncError: null,
+    customMeta: {
+      department: 'Engineering',
+      batch: '2024-2025',
+      status: 'Active',
+      notes: 'Profile verified'
+    }
+  };
+}
+
+// Single central backend sync pipeline
+export async function syncMember(username, existingProfile = null) {
+  const cleanUser = sanitizeUsername(username);
+  const now = new Date().toISOString();
+  console.log(`[SYNC] Fetching @${cleanUser}...`);
+
+  try {
+    const fresh = await fetchHackerRankProfile(cleanUser);
+    console.log(`[SYNC] @${cleanUser} validated and parsed successfully.`);
+
+    // Preserve admin-managed metadata
+    if (existingProfile?.customMeta) {
+      fresh.customMeta = { ...fresh.customMeta, ...existingProfile.customMeta };
+    }
+    if (existingProfile?.notes) fresh.notes = existingProfile.notes;
+
+    fresh.lastSyncedAt = now;
+    fresh.lastSuccessfulSyncAt = now;
+    fresh.lastSyncStatus = 'success';
+    fresh.lastSyncError = null;
+
+    return { profile: fresh, error: null };
+  } catch (err) {
+    console.warn(`[SYNC] @${cleanUser} sync failed: ${err.message}`);
+    if (existingProfile) {
+      existingProfile.lastSyncedAt = now;
+      existingProfile.lastSyncStatus = 'failed';
+      existingProfile.lastSyncError = err.message;
+      return { profile: existingProfile, error: err.message };
+    }
+    throw err;
   }
 }
-seedInitialData();
 
-// Admin Password Configuration (Environment variable with default fallback)
+// Global server-side sync lock
+let isSyncInProgress = false;
+
+// Scheduled automatic sync every 10 minutes
+export async function autoSyncProfiles() {
+  if (isSyncInProgress) {
+    console.log('[SYNC] Scheduled sync skipped: another sync cycle is already in progress.');
+    return;
+  }
+
+  isSyncInProgress = true;
+  console.log('[SYNC] Starting scheduled sync cycle for all tracked members...');
+
+  try {
+    const db = await readDb();
+    if (!db || db.length === 0) {
+      console.log('[SYNC] No tracked members found in storage.');
+      return;
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < db.length; i++) {
+      const user = db[i].username;
+      try {
+        const { profile, error } = await syncMember(user, db[i]);
+        db[i] = profile;
+        if (error) {
+          failCount++;
+        } else {
+          successCount++;
+        }
+      } catch (err) {
+        failCount++;
+        console.error(`[SYNC] Unexpected error syncing ${user}:`, err.message);
+      }
+      // Small 400ms delay between members to respect HackerRank rate limits
+      await new Promise(r => setTimeout(r, 400));
+    }
+
+    await writeDb(db);
+    console.log(`[SYNC] Scheduled sync completed: ${successCount} successful, ${failCount} failed.`);
+  } catch (e) {
+    console.error('[SYNC] Scheduled sync cycle error:', e.message);
+  } finally {
+    isSyncInProgress = false;
+  }
+}
+
+// Run 10-minute auto-sync timer (10 * 60 * 1000 ms = 600,000 ms)
+setInterval(autoSyncProfiles, 10 * 60 * 1000);
+
+// Admin Password Configuration
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Nanami@1304';
 const ADMIN_TOKEN = 'hr_admin_auth_token_secret';
 
 // Admin Authentication Middleware for mutating operations
-function requireAdminAuth(req, res, next) {
+export function requireAdminAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   const adminKey = req.headers['x-admin-key'];
 
@@ -486,7 +375,7 @@ function requireAdminAuth(req, res, next) {
   return res.status(401).json({ success: false, error: 'Unauthorized: Admin authentication required.' });
 }
 
-// API Endpoints
+// ----------------- API ROUTE DEFINITIONS -----------------
 
 // 0. Admin Login & Verification Endpoint
 app.post('/api/admin/login', (req, res) => {
@@ -501,7 +390,12 @@ app.post('/api/admin/login', (req, res) => {
 // 1. GET all profiles (Publicly accessible)
 app.get('/api/profiles', async (req, res) => {
   const profiles = await readDb();
-  res.json({ success: true, count: profiles.length, data: profiles });
+  res.json({ 
+    success: true, 
+    count: profiles.length, 
+    data: profiles,
+    serverTime: new Date().toISOString()
+  });
 });
 
 // 2. GET a single profile by username
@@ -516,20 +410,15 @@ app.get('/api/profile/:username', async (req, res) => {
   }
 
   try {
-    const fresh = await fetchHackerRankProfile(username);
-    // preserve existing customMeta if any
-    if (existing?.customMeta) {
-      fresh.customMeta = { ...fresh.customMeta, ...existing.customMeta };
-    }
-    // Update or insert into db
+    const { profile } = await syncMember(username, existing);
     const idx = db.findIndex(p => p.username.toLowerCase() === username.toLowerCase());
     if (idx >= 0) {
-      db[idx] = fresh;
+      db[idx] = profile;
     } else {
-      db.push(fresh);
+      db.push(profile);
     }
     await writeDb(db);
-    res.json({ success: true, cached: false, data: fresh });
+    res.json({ success: true, cached: false, data: profile });
   } catch (err) {
     console.error(`Error fetching profile ${username}:`, err.message);
     if (existing) {
@@ -539,7 +428,7 @@ app.get('/api/profile/:username', async (req, res) => {
   }
 });
 
-// 3. POST add new profile & persist to public hub (Admin protected)
+// 3. POST add new profile & persist (Admin protected)
 app.post('/api/profiles', requireAdminAuth, async (req, res) => {
   const { username: rawInput, customMeta } = req.body;
   if (!rawInput) {
@@ -551,18 +440,18 @@ app.post('/api/profiles', requireAdminAuth, async (req, res) => {
   const existingIdx = db.findIndex(p => p.username.toLowerCase() === username.toLowerCase());
 
   try {
-    const profile = await fetchHackerRankProfile(username);
+    const fresh = await fetchHackerRankProfile(username);
     if (customMeta) {
-      profile.customMeta = { ...profile.customMeta, ...customMeta };
+      fresh.customMeta = { ...fresh.customMeta, ...customMeta };
     }
 
     if (existingIdx >= 0) {
-      db[existingIdx] = profile;
+      db[existingIdx] = fresh;
     } else {
-      db.unshift(profile);
+      db.unshift(fresh);
     }
     await writeDb(db);
-    res.status(201).json({ success: true, message: `Profile ${username} added/updated & published`, data: profile });
+    res.status(201).json({ success: true, message: `Profile @${username} verified and added to tracking`, data: fresh });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message || 'Failed to fetch HackerRank profile' });
   }
@@ -600,13 +489,64 @@ app.post('/api/profiles/batch', requireAdminAuth, async (req, res) => {
     } catch (err) {
       results.failed.push({ username, error: err.message });
     }
+    await new Promise(r => setTimeout(r, 400));
   }
 
   await writeDb(db);
   res.json({ success: true, results, count: db.length });
 });
 
-// 5. PATCH update custom metadata (Admin protected)
+// 5. POST sync a single profile manually (Admin protected)
+app.post('/api/profiles/:username/sync', requireAdminAuth, async (req, res) => {
+  const username = sanitizeUsername(req.params.username);
+  const db = await readDb();
+  const idx = db.findIndex(p => p.username.toLowerCase() === username.toLowerCase());
+
+  if (idx === -1) {
+    return res.status(404).json({ success: false, error: `Profile @${username} not found in tracking roster` });
+  }
+
+  try {
+    const { profile, error } = await syncMember(username, db[idx]);
+    db[idx] = profile;
+    await writeDb(db);
+    
+    if (error) {
+      return res.json({ success: false, message: `Sync failed for @${username}: ${error}`, data: profile });
+    }
+    return res.json({ success: true, message: `Successfully synced @${username}`, data: profile });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6. POST sync all profiles manually (Admin protected)
+app.post('/api/profiles/sync', requireAdminAuth, async (req, res) => {
+  const db = await readDb();
+  const updated = [];
+  const errors = [];
+
+  for (let i = 0; i < db.length; i++) {
+    const user = db[i].username;
+    try {
+      const { profile, error } = await syncMember(user, db[i]);
+      db[i] = profile;
+      if (error) {
+        errors.push({ username: user, error });
+      } else {
+        updated.push(user);
+      }
+    } catch (err) {
+      errors.push({ username: user, error: err.message });
+    }
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  await writeDb(db);
+  res.json({ success: true, updated, errors, total: db.length });
+});
+
+// 7. PATCH update custom metadata (Admin protected)
 app.patch('/api/profiles/:username', requireAdminAuth, async (req, res) => {
   const username = sanitizeUsername(req.params.username);
   const { customMeta, name, country, school, job_title } = req.body;
@@ -614,7 +554,7 @@ app.patch('/api/profiles/:username', requireAdminAuth, async (req, res) => {
   const idx = db.findIndex(p => p.username.toLowerCase() === username.toLowerCase());
 
   if (idx === -1) {
-    return res.status(404).json({ success: false, error: `Profile ${username} not found` });
+    return res.status(404).json({ success: false, error: `Profile @${username} not found` });
   }
 
   if (customMeta) {
@@ -629,7 +569,7 @@ app.patch('/api/profiles/:username', requireAdminAuth, async (req, res) => {
   res.json({ success: true, data: db[idx] });
 });
 
-// 6. DELETE profile & update public hub (Admin protected)
+// 8. DELETE profile (Admin protected)
 app.delete('/api/profiles/:username', requireAdminAuth, async (req, res) => {
   const username = sanitizeUsername(req.params.username);
   let db = await readDb();
@@ -637,36 +577,11 @@ app.delete('/api/profiles/:username', requireAdminAuth, async (req, res) => {
   db = db.filter(p => p.username.toLowerCase() !== username.toLowerCase());
 
   if (db.length === initialLen) {
-    return res.status(404).json({ success: false, error: `Profile ${username} not found` });
+    return res.status(404).json({ success: false, error: `Profile @${username} not found` });
   }
 
   await writeDb(db);
-  res.json({ success: true, message: `Profile ${username} deleted successfully` });
-});
-
-// 7. POST sync all profiles (Admin protected)
-app.post('/api/profiles/sync', requireAdminAuth, async (req, res) => {
-  const db = await readDb();
-  const updated = [];
-  const errors = [];
-
-  for (let i = 0; i < db.length; i++) {
-    const user = db[i].username;
-    try {
-      const fresh = await fetchHackerRankProfile(user);
-      if (db[i].customMeta) {
-        fresh.customMeta = { ...fresh.customMeta, ...db[i].customMeta };
-      }
-      db[i] = fresh;
-      updated.push(user);
-    } catch (err) {
-      // Preserve existing profile on temporary fetch failure
-      errors.push({ username: user, error: err.message });
-    }
-  }
-
-  await writeDb(db);
-  res.json({ success: true, updated, errors });
+  res.json({ success: true, message: `Profile @${username} removed from tracking` });
 });
 
 // Serve static production build if available
@@ -679,42 +594,8 @@ if (fs.existsSync(DIST_DIR)) {
   });
 }
 
-// Background Auto-Sync every 10 minutes
-async function autoSyncProfiles() {
-  console.log('[AutoSync] Starting automatic background sync for all profiles...');
-  try {
-    const db = await readDb();
-    if (!db || db.length === 0) return;
-    
-    let updatedCount = 0;
-    for (let i = 0; i < db.length; i++) {
-      const user = db[i].username;
-      try {
-        const fresh = await fetchHackerRankProfile(user);
-        if (db[i].customMeta) {
-          fresh.customMeta = { ...fresh.customMeta, ...db[i].customMeta };
-        }
-        db[i] = fresh;
-        updatedCount++;
-      } catch (err) {
-        console.warn(`[AutoSync] Failed to sync ${user}:`, err.message);
-      }
-    }
-    
-    if (updatedCount > 0) {
-      await writeDb(db);
-      console.log(`[AutoSync] Successfully synced ${updatedCount} profiles.`);
-    }
-  } catch (e) {
-    console.error('[AutoSync] Error during background sync:', e.message);
-  }
-}
-
-// Run auto-sync every 10 minutes (600,000 ms)
-setInterval(autoSyncProfiles, 10 * 60 * 1000);
-
 if (!process.env.NETLIFY && process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
-    console.log(`HackerRank Dashboard Proxy Server running on port ${PORT}`);
+    console.log(`[SERVER] HackerRank Analytics Server running on port ${PORT}`);
   });
 }

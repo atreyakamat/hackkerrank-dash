@@ -15,13 +15,8 @@ import {
   RefreshCw, 
   Unlock, 
   ArrowLeft, 
-  LogOut,
-  BarChart3,
-  Trophy,
-  GitCompare,
-  ShieldCheck
+  LogOut
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 
 export default function App() {
   const searchParams = new URLSearchParams(window.location.search);
@@ -73,20 +68,27 @@ export default function App() {
 
   // Load all peer profiles on boot
   useEffect(() => {
-    loadAllProfiles();
+    loadAllProfiles(false);
+
+    // Lightweight frontend polling every 60s to retrieve refreshed backend data
+    const pollInterval = setInterval(() => {
+      loadAllProfiles(true);
+    }, 60 * 1000);
+
+    return () => clearInterval(pollInterval);
   }, []);
 
-  const loadAllProfiles = async () => {
-    setIsLoading(true);
+  const loadAllProfiles = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const data = await api.getProfiles();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setProfiles(data);
       }
     } catch (e) {
-      console.warn('Failed to load live profiles, using cached dataset:', e.message);
+      console.warn('Failed to load profiles:', e.message);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -99,30 +101,38 @@ export default function App() {
   // Admin Actions
   const handleAddProfile = async (input, customMeta) => {
     const fresh = await api.addProfile(input, customMeta);
-    await loadAllProfiles();
+    await loadAllProfiles(true);
     return fresh;
   };
 
   const handleBatchImport = async (inputs) => {
-    await api.batchImport(inputs);
-    await loadAllProfiles();
+    const res = await api.batchImport(inputs);
+    await loadAllProfiles(true);
+    return res;
   };
 
   const handleDeleteProfile = async (username) => {
     await api.deleteProfile(username);
-    await loadAllProfiles();
+    await loadAllProfiles(true);
   };
 
   const handleSaveProfileMeta = async (username, payload) => {
     await api.updateProfileMeta(username, payload);
-    await loadAllProfiles();
+    await loadAllProfiles(true);
+  };
+
+  const handleSyncProfile = async (username) => {
+    const res = await api.syncProfile(username);
+    await loadAllProfiles(true);
+    return res;
   };
 
   const handleSyncAll = async () => {
     setIsLoading(true);
     try {
-      await api.syncAllProfiles();
-      await loadAllProfiles();
+      const res = await api.syncAllProfiles();
+      await loadAllProfiles(true);
+      return res;
     } finally {
       setIsLoading(false);
     }
@@ -157,7 +167,7 @@ export default function App() {
         />
       )}
 
-      {/* 2. Admin Mode Active Banner (Only at /hacko/admin after login) */}
+      {/* 2. Admin Mode Active Banner */}
       {isAdminRoute && isAdminAuthenticated && (
         <div className="bg-gradient-to-r from-amber-500/20 via-amber-600/10 to-transparent border-b border-amber-500/30 px-4 py-2 text-xs font-mono flex items-center justify-between text-amber-300">
           <div className="flex items-center gap-2">
@@ -223,8 +233,6 @@ export default function App() {
             profiles={profiles}
             selectedPeerUsername={selectedPeerUsername}
             onSelectPeer={handleSelectPeer}
-            activePublicView={activeTab}
-            setActivePublicView={setActiveTab}
           />
         )}
 
@@ -252,7 +260,7 @@ export default function App() {
             onAddProfile={handleAddProfile}
             onBatchImport={handleBatchImport}
             onDeleteProfile={handleDeleteProfile}
-            onSyncProfile={(u) => api.getProfile(u, true).then(loadAllProfiles)}
+            onSyncProfile={handleSyncProfile}
             onSyncAll={handleSyncAll}
             onSelectProfile={handleSelectPeer}
             onEditProfile={(p) => setEditProfileData(p)}

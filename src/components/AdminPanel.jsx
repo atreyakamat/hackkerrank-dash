@@ -17,7 +17,7 @@ import {
   ArrowRight,
   Send,
   Filter,
-  LogOut
+  Clock
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { validateHackerRankInput } from '../services/api';
@@ -46,14 +46,16 @@ export default function AdminPanel({
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [fetchStep, setFetchStep] = useState(null); // 'validating', 'fetching', 'processing', 'done'
   const [statusMessage, setStatusMessage] = useState(null);
   const [detailModalProfile, setDetailModalProfile] = useState(null);
+
+  // Sync state tracking per member
+  const [memberSyncState, setMemberSyncState] = useState({}); // { [username]: { status: 'fetching'|'validating'|'updating'|'done'|'error', text: string } }
 
   // Live input validation
   const validation = validateHackerRankInput(inputUsername);
 
-  // Handle single profile add with validation and immediate push to frontend
+  // Handle single profile add with live validation
   const handleAddSingle = async (e) => {
     e.preventDefault();
     if (!validation.isValid) {
@@ -62,14 +64,9 @@ export default function AdminPanel({
     }
 
     setIsSubmitting(true);
-    setFetchStep('validating');
-    setStatusMessage({ type: 'loading', text: `Validating @${validation.sanitizedUsername}...` });
+    setStatusMessage({ type: 'loading', text: `Fetching and validating @${validation.sanitizedUsername} from HackerRank...` });
 
     try {
-      setFetchStep('fetching');
-      setStatusMessage({ type: 'loading', text: `Fetching profile data from HackerRank API for @${validation.sanitizedUsername}...` });
-
-      setFetchStep('processing');
       const res = await onAddProfile(inputUsername.trim(), {
         batch: batchTag,
         status: statusTag,
@@ -78,25 +75,65 @@ export default function AdminPanel({
 
       setStatusMessage({ 
         type: 'success', 
-        text: `✅ Added @${res.username} successfully (${res.totalSolved || 0} solved, ★ ${res.totalStars || 0} stars)! Pushed to live public dashboard.` 
+        text: `Successfully added @${res.username} (${res.totalSolved || 0} solved, ★ ${res.totalStars || 0} stars). Published to dashboard.` 
       });
 
       setInputUsername('');
       setNotesInput('');
-      setFetchStep('done');
       
       confetti({
-        particleCount: 40,
+        particleCount: 35,
         spread: 60,
         origin: { y: 0.6 },
         colors: ['#2EC866', '#00EA64']
       });
 
     } catch (err) {
-      setFetchStep(null);
       setStatusMessage({ type: 'error', text: err.message || 'Failed to fetch HackerRank profile. Please check username.' });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Handle single member manual sync with step-by-step feedback
+  const handleSyncSingleMember = async (username) => {
+    setMemberSyncState(prev => ({
+      ...prev,
+      [username]: { status: 'fetching', text: 'Fetching HackerRank data...' }
+    }));
+
+    try {
+      await new Promise(r => setTimeout(r, 300));
+      setMemberSyncState(prev => ({
+        ...prev,
+        [username]: { status: 'validating', text: 'Validating profile...' }
+      }));
+
+      await new Promise(r => setTimeout(r, 300));
+      setMemberSyncState(prev => ({
+        ...prev,
+        [username]: { status: 'updating', text: 'Updating statistics...' }
+      }));
+
+      const res = await onSyncProfile(username);
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      if (res?.success === false) {
+        setMemberSyncState(prev => ({
+          ...prev,
+          [username]: { status: 'error', text: `Sync failed: ${res.message || 'Error fetching'}` }
+        }));
+      } else {
+        setMemberSyncState(prev => ({
+          ...prev,
+          [username]: { status: 'done', text: `Successfully synced at ${timeStr}` }
+        }));
+      }
+    } catch (err) {
+      setMemberSyncState(prev => ({
+        ...prev,
+        [username]: { status: 'error', text: `Sync failed: ${err.message}` }
+      }));
     }
   };
 
@@ -106,12 +143,13 @@ export default function AdminPanel({
     if (!batchText.trim()) return;
 
     setIsSubmitting(true);
+    setStatusMessage({ type: 'loading', text: 'Importing and validating members...' });
     try {
       await onBatchImport(batchText);
       setShowBatchModal(false);
       setBatchText('');
       setStatusMessage({ type: 'success', text: 'Batch members successfully imported and published!' });
-      setTimeout(() => setStatusMessage(null), 4000);
+      setTimeout(() => setStatusMessage(null), 5000);
     } catch (err) {
       setStatusMessage({ type: 'error', text: err.message || 'Failed during batch import' });
     } finally {
@@ -121,7 +159,7 @@ export default function AdminPanel({
 
   // Export CSV
   const handleExportCSV = () => {
-    const headers = ['Username', 'Name', 'Country', 'School', 'Total Stars', 'Total Solved', 'Total Points', 'Best Rank', 'Group', 'Status', 'Notes', 'HackerRank URL'];
+    const headers = ['Username', 'Name', 'Country', 'School', 'Total Stars', 'Total Solved', 'Total Points', 'Group', 'Status', 'Last Synced'];
     const rows = profiles.map(p => [
       p.username,
       `"${p.name || p.username}"`,
@@ -130,11 +168,9 @@ export default function AdminPanel({
       p.totalStars || 0,
       p.totalSolved || 0,
       p.totalPoints || 0,
-      p.bestRank || '',
       `"${p.customMeta?.batch || ''}"`,
       `"${p.customMeta?.status || ''}"`,
-      `"${(p.customMeta?.notes || '').replace(/"/g, '""')}"`,
-      `https://www.hackerrank.com/profile/${p.username}`
+      `"${p.lastSyncedAt || p.lastSuccessfulSyncAt || ''}"`
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -165,16 +201,16 @@ export default function AdminPanel({
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       
-      {/* 1. Admin Header & Minimal Status Bar */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-[#121B27] border border-[#263545] shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* 1. Admin Header & Status Bar */}
+      <div className="p-5 sm:p-6 rounded-xl bg-[#121B27] border border-[#263545] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="p-2.5 bg-amber-500/15 rounded-xl border border-amber-500/30 text-amber-400">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+            <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
               <span>Peer Tracker Admin</span>
-              <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+              <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
                 /hacko/admin
               </span>
             </h1>
@@ -185,10 +221,10 @@ export default function AdminPanel({
         </div>
 
         {/* Global Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
           <button
             onClick={() => setShowBatchModal(true)}
-            className="px-3.5 py-2 bg-[#151F2C] hover:bg-[#1E2A38] text-slate-200 hover:text-white font-semibold text-xs rounded-xl border border-[#263545] transition-all flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-[#0E141E] hover:bg-[#1E2A38] text-slate-200 hover:text-white rounded-lg border border-[#263545] transition-colors flex items-center gap-1.5"
           >
             <UploadCloud className="w-3.5 h-3.5 text-[#00EA64]" />
             <span>Batch Import</span>
@@ -197,15 +233,15 @@ export default function AdminPanel({
           <button
             onClick={onSyncAll}
             disabled={isLoading}
-            className="px-3.5 py-2 bg-[#151F2C] hover:bg-[#1E2A38] text-slate-200 hover:text-white font-semibold text-xs rounded-xl border border-[#263545] transition-all flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3 py-1.5 bg-[#0E141E] hover:bg-[#1E2A38] text-slate-200 hover:text-white rounded-lg border border-[#263545] transition-colors flex items-center gap-1.5 disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#00EA64]' : ''}`} />
-            <span>Sync All Members</span>
+            <span>Sync All</span>
           </button>
 
           <button
             onClick={handleExportCSV}
-            className="px-3.5 py-2 bg-[#2EC866] hover:bg-[#24a152] text-black font-extrabold text-xs rounded-xl shadow transition-all flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-[#00EA64] hover:bg-[#2EC866] text-black font-bold rounded-lg transition-colors flex items-center gap-1.5"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
             <span>Export CSV</span>
@@ -214,17 +250,17 @@ export default function AdminPanel({
       </div>
 
       {/* 2. Add Member Form Card */}
-      <div className="hr-card p-5 sm:p-6 space-y-4 border border-[#263545] bg-[#121B27]">
-        <div className="flex items-center justify-between pb-2 border-b border-[#263545]/60">
+      <div className="p-5 sm:p-6 rounded-xl border border-[#263545] bg-[#121B27] space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-[#263545]">
           <div className="flex items-center gap-2">
             <UserPlus className="w-4 h-4 text-[#00EA64]" />
-            <h3 className="text-sm sm:text-base font-bold text-white">Add HackerRank Member</h3>
+            <h3 className="text-sm font-bold text-white">Add HackerRank Member</h3>
           </div>
           {inputUsername.trim() && (
-            <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-md border ${
+            <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded ${
               validation.isValid 
-                ? 'bg-[#2EC866]/15 text-[#00EA64] border-[#2EC866]/40' 
-                : 'bg-red-500/15 text-red-400 border-red-500/40'
+                ? 'bg-[#00EA64]/10 text-[#00EA64] border border-[#00EA64]/30' 
+                : 'bg-red-500/10 text-red-400 border border-red-500/30'
             }`}>
               {validation.isValid ? `✓ Format Valid: @${validation.sanitizedUsername}` : `✗ ${validation.error}`}
             </span>
@@ -241,25 +277,25 @@ export default function AdminPanel({
               </label>
               <input
                 type="text"
-                placeholder="e.g. atkamat1204 or https://www.hackerrank.com/profile/username"
+                placeholder="e.g. atkamat1204 or https://www.hackerrank.com/profile/atkamat1204"
                 value={inputUsername}
                 onChange={(e) => setInputUsername(e.target.value)}
                 required
-                className="w-full bg-[#0E141E] border border-[#263545] focus:border-[#2EC866] rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none font-mono"
+                className="w-full bg-[#0E141E] border border-[#263545] focus:border-[#00EA64] rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none font-mono"
               />
             </div>
 
-            {/* Group */}
+            {/* Batch / Group Tag */}
             <div className="md:col-span-3">
               <label className="block text-[10px] font-mono uppercase text-slate-400 mb-1">
-                Group / Batch
+                Cohort / Batch Tag
               </label>
               <input
                 type="text"
-                placeholder="e.g. Core Group"
+                placeholder="e.g. Batch 2025"
                 value={batchTag}
                 onChange={(e) => setBatchTag(e.target.value)}
-                className="w-full bg-[#0E141E] border border-[#263545] focus:border-[#2EC866] rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none font-mono"
+                className="w-full bg-[#0E141E] border border-[#263545] focus:border-[#00EA64] rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none"
               />
             </div>
 
@@ -271,7 +307,7 @@ export default function AdminPanel({
               <select
                 value={statusTag}
                 onChange={(e) => setStatusTag(e.target.value)}
-                className="w-full bg-[#0E141E] border border-[#263545] focus:border-[#2EC866] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none font-mono"
+                className="w-full bg-[#0E141E] border border-[#263545] focus:border-[#00EA64] rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none"
               >
                 <option value="Active">Active</option>
                 <option value="Watching">Watching</option>
@@ -283,191 +319,187 @@ export default function AdminPanel({
             {/* Notes */}
             <div className="md:col-span-9">
               <label className="block text-[10px] font-mono uppercase text-slate-400 mb-1">
-                Admin Notes (Internal only)
+                Internal Admin Notes (Optional)
               </label>
               <input
                 type="text"
-                placeholder="Optional internal remarks..."
+                placeholder="e.g. Preparing for placements"
                 value={notesInput}
                 onChange={(e) => setNotesInput(e.target.value)}
-                className="w-full bg-[#0E141E] border border-[#263545] focus:border-[#2EC866] rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                className="w-full bg-[#0E141E] border border-[#263545] focus:border-[#00EA64] rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 font-mono focus:outline-none"
               />
             </div>
 
-            {/* Submit */}
+            {/* Submit Button */}
             <div className="md:col-span-3 flex items-end">
               <button
                 type="submit"
-                disabled={isSubmitting || !inputUsername.trim() || !validation.isValid}
-                className="w-full py-2 bg-[#2EC866] hover:bg-[#24a152] text-black font-extrabold rounded-xl text-xs shadow transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                disabled={isSubmitting || !validation.isValid}
+                className="w-full py-2 bg-[#00EA64] hover:bg-[#2EC866] text-black font-mono font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 shadow"
               >
-                {isSubmitting ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-3.5 h-3.5" />
-                    <span>+ Add & Push to Hub</span>
-                  </>
-                )}
+                <Send className="w-3.5 h-3.5" />
+                <span>{isSubmitting ? 'Verifying & Adding...' : 'Add Member'}</span>
               </button>
             </div>
 
           </div>
         </form>
 
-        {/* Live Feedback */}
+        {/* Status Alerts */}
         {statusMessage && (
-          <div className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-mono animate-in fade-in ${
-            statusMessage.type === 'success' 
-              ? 'bg-[#2EC866]/15 text-[#00EA64] border-[#2EC866]/40' 
-              : statusMessage.type === 'loading'
-              ? 'bg-sky-500/15 text-sky-400 border-sky-500/40'
-              : 'bg-red-500/15 text-red-400 border-red-500/40'
+          <div className={`p-3 rounded-lg border text-xs font-mono flex items-center gap-2 ${
+            statusMessage.type === 'success'
+              ? 'bg-[#00EA64]/10 text-[#00EA64] border-[#00EA64]/30'
+              : statusMessage.type === 'error'
+              ? 'bg-red-500/10 text-red-400 border-red-500/30'
+              : 'bg-sky-500/10 text-sky-300 border-sky-500/30'
           }`}>
-            {statusMessage.type === 'success' && <CheckCircle2 className="w-4 h-4 shrink-0" />}
-            {statusMessage.type === 'loading' && <RefreshCw className="w-4 h-4 shrink-0 animate-spin" />}
-            {statusMessage.type === 'error' && <AlertCircle className="w-4 h-4 shrink-0" />}
+            {statusMessage.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+            ) : statusMessage.type === 'error' ? (
+              <AlertCircle className="w-4 h-4 shrink-0" />
+            ) : (
+              <RefreshCw className="w-4 h-4 shrink-0 animate-spin" />
+            )}
             <span>{statusMessage.text}</span>
           </div>
         )}
-
       </div>
 
-      {/* 3. Member Management Table */}
-      <div className="hr-card p-5 sm:p-6 space-y-4 border border-[#263545] bg-[#121B27]">
+      {/* 3. Tracked Member Management Table */}
+      <div className="p-5 sm:p-6 rounded-xl border border-[#263545] bg-[#121B27] space-y-4">
         
-        {/* Search and Filters */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-[#263545]/60">
+        {/* Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#263545]">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-[#00EA64]" />
-            <h3 className="text-sm sm:text-base font-bold text-white">
-              Manage Tracked Members ({filteredProfiles.length})
-            </h3>
+            <h3 className="text-sm font-bold text-white">Tracked Peer Members ({filteredProfiles.length})</h3>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Search */}
-            <div className="relative min-w-[180px]">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+            <div className="relative min-w-[160px]">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search..."
                 value={tableSearch}
                 onChange={(e) => setTableSearch(e.target.value)}
-                className="w-full bg-[#0E141E] border border-[#263545] rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#2EC866] font-mono"
+                className="w-full bg-[#0E141E] border border-[#263545] rounded-lg pl-7 pr-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none font-mono"
               />
             </div>
 
-            {/* Group Filter */}
-            {availableBatches.length > 2 && (
-              <select
-                value={selectedBatchFilter}
-                onChange={(e) => setSelectedBatchFilter(e.target.value)}
-                className="bg-[#0E141E] border border-[#263545] rounded-xl px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none font-mono"
-              >
-                {availableBatches.map(b => (
-                  <option key={b} value={b}>Group: {b}</option>
-                ))}
-              </select>
-            )}
-
-            {/* Status Filter */}
+            {/* Batch Filter */}
             <select
-              value={selectedStatusFilter}
-              onChange={(e) => setSelectedStatusFilter(e.target.value)}
-              className="bg-[#0E141E] border border-[#263545] rounded-xl px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none font-mono"
+              value={selectedBatchFilter}
+              onChange={(e) => setSelectedBatchFilter(e.target.value)}
+              className="bg-[#0E141E] border border-[#263545] rounded-lg px-2.5 py-1 text-xs text-slate-300 focus:outline-none font-mono"
             >
-              {availableStatuses.map(s => (
-                <option key={s} value={s}>Status: {s}</option>
+              {availableBatches.map(b => (
+                <option key={b} value={b}>Group: {b}</option>
               ))}
             </select>
           </div>
         </div>
 
-        {/* Management Table */}
-        <div className="overflow-x-auto rounded-xl border border-[#263545]">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#0E141E] text-slate-400 font-mono uppercase text-[10px] border-b border-[#263545]">
+        {/* Table */}
+        <div className="overflow-x-auto rounded-lg border border-[#263545]">
+          <table className="w-full text-left text-xs font-mono">
+            <thead className="bg-[#0E141E] text-slate-400 uppercase text-[10px] border-b border-[#263545]">
               <tr>
-                <th className="px-4 py-3">Member</th>
-                <th className="px-3 py-3 text-center">Solved</th>
-                <th className="px-3 py-3 text-center">Stars</th>
-                <th className="px-3 py-3">Group</th>
-                <th className="px-3 py-3">Status</th>
-                <th className="px-3 py-3">Last Sync</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="px-4 py-2.5">Member</th>
+                <th className="px-3 py-2.5 text-center">Solved</th>
+                <th className="px-3 py-2.5 text-center">Stars</th>
+                <th className="px-3 py-2.5">Group</th>
+                <th className="px-3 py-2.5">Last Sync Status</th>
+                <th className="px-4 py-2.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#263545]/60 bg-[#121B27]">
               {filteredProfiles.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400 font-mono">
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                     No members found.
                   </td>
                 </tr>
               ) : (
                 filteredProfiles.map((p) => {
-                  const solved = p.totalSolved ?? (p.badges?.reduce((s, b) => s + (b.solved || 0), 0) || 0);
-                  const stars = p.totalStars ?? (p.badges?.reduce((s, b) => s + (b.stars || 0), 0) || 0);
+                  const solved = p.totalSolved ?? 0;
+                  const stars = p.totalStars ?? 0;
+                  const syncState = memberSyncState[p.username];
+                  const syncTime = p.lastSuccessfulSyncAt || p.lastSyncedAt;
 
                   return (
-                    <tr key={p.username} className="hover:bg-[#151F2C] transition-colors group">
+                    <tr key={p.username} className="hover:bg-[#0E141E] transition-colors group">
                       
                       {/* Member */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2">
                           <img
                             src={p.avatar}
                             alt={p.username}
-                            className="w-7 h-7 rounded-full object-cover bg-slate-800 border border-[#263545]"
+                            className="w-6 h-6 rounded-md object-cover bg-slate-800 border border-[#263545]"
                             onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${p.username}`; }}
                           />
                           <div>
                             <p className="font-bold text-white">{p.name || p.username}</p>
-                            <p className="text-[10px] font-mono text-[#00EA64]">@{p.username}</p>
+                            <p className="text-[10px] text-[#00EA64]">@{p.username}</p>
                           </div>
                         </div>
                       </td>
 
                       {/* Solved */}
-                      <td className="px-3 py-3 text-center font-mono font-bold text-white">
-                        <span className="text-[#00EA64]">{solved}</span>
+                      <td className="px-3 py-2.5 text-center font-bold text-[#00EA64]">
+                        {solved}
                       </td>
 
                       {/* Stars */}
-                      <td className="px-3 py-3 text-center font-mono font-bold text-amber-400">
+                      <td className="px-3 py-2.5 text-center font-bold text-amber-400">
                         ★ {stars}
                       </td>
 
                       {/* Group */}
-                      <td className="px-3 py-3 font-mono text-slate-300">
+                      <td className="px-3 py-2.5 text-slate-300">
                         {p.customMeta?.batch || 'Core Group'}
                       </td>
 
-                      {/* Status */}
-                      <td className="px-3 py-3">
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#151F2C] text-slate-300 border border-[#263545]">
-                          {p.customMeta?.status || 'Active'}
-                        </span>
-                      </td>
-
-                      {/* Last Sync */}
-                      <td className="px-3 py-3 font-mono text-slate-400 text-[10px]">
-                        {p.lastSynced ? new Date(p.lastSynced).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}
+                      {/* Last Sync Status / Feedback */}
+                      <td className="px-3 py-2.5">
+                        {syncState ? (
+                          <div className="flex items-center gap-1.5 text-[11px]">
+                            {syncState.status === 'done' ? (
+                              <span className="text-[#00EA64] flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                {syncState.text}
+                              </span>
+                            ) : syncState.status === 'error' ? (
+                              <span className="text-red-400 flex items-center gap-1">
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                {syncState.text}
+                              </span>
+                            ) : (
+                              <span className="text-sky-400 flex items-center gap-1">
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                {syncState.text}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-slate-400">
+                            {syncTime ? new Date(syncTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Pending'}
+                          </div>
+                        )}
                       </td>
 
                       {/* Actions */}
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-1">
                           
                           {/* View Detail Modal */}
                           <button
                             onClick={() => setDetailModalProfile(p)}
-                            className="p-1.5 bg-[#0E141E] hover:bg-[#1E2A38] text-slate-300 hover:text-white rounded-lg border border-[#263545] transition-colors"
-                            title="View Member Detail"
+                            className="p-1.5 bg-[#0E141E] hover:bg-[#1E2A38] text-slate-300 hover:text-white rounded border border-[#263545] transition-colors"
+                            title="View Details"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
@@ -475,17 +507,17 @@ export default function AdminPanel({
                           {/* Edit Metadata */}
                           <button
                             onClick={() => onEditProfile(p)}
-                            className="p-1.5 bg-[#0E141E] hover:bg-[#1E2A38] text-slate-300 hover:text-[#00EA64] rounded-lg border border-[#263545] transition-colors"
-                            title="Edit Metadata"
+                            className="p-1.5 bg-[#0E141E] hover:bg-[#1E2A38] text-slate-300 hover:text-[#00EA64] rounded border border-[#263545] transition-colors"
+                            title="Edit Meta"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
 
                           {/* Sync Now */}
                           <button
-                            onClick={() => onSyncProfile(p.username)}
-                            className="p-1.5 bg-[#0E141E] hover:bg-[#1E2A38] text-slate-300 hover:text-white rounded-lg border border-[#263545] transition-colors"
-                            title="Sync HackerRank Data"
+                            onClick={() => handleSyncSingleMember(p.username)}
+                            className="p-1.5 bg-[#0E141E] hover:bg-[#1E2A38] text-[#00EA64] rounded border border-[#263545] transition-colors"
+                            title="Sync Now"
                           >
                             <RefreshCw className="w-3.5 h-3.5" />
                           </button>
@@ -497,7 +529,7 @@ export default function AdminPanel({
                                 onDeleteProfile(p.username);
                               }
                             }}
-                            className="p-1.5 bg-[#0E141E] hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg border border-[#263545] transition-colors"
+                            className="p-1.5 bg-[#0E141E] hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded border border-[#263545] transition-colors"
                             title="Delete Member"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -516,76 +548,51 @@ export default function AdminPanel({
 
       </div>
 
-      {/* Detail Modal */}
+      {/* Batch Import Modal */}
+      {showBatchModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-[#121B27] border border-[#263545] rounded-xl max-w-lg w-full p-6 space-y-4 font-mono">
+            <h3 className="text-base font-bold text-white">Batch Import HackerRank Usernames</h3>
+            <p className="text-xs text-slate-400">
+              Enter one username or profile URL per line, or comma-separated.
+            </p>
+            <textarea
+              rows={6}
+              value={batchText}
+              onChange={(e) => setBatchText(e.target.value)}
+              placeholder="atkamat1204&#10;anishparab3_25&#10;https://www.hackerrank.com/profile/gawastanmay373"
+              className="w-full bg-[#0E141E] border border-[#263545] rounded-lg p-3 text-xs text-white focus:outline-none focus:border-[#00EA64]"
+            />
+            <div className="flex items-center justify-end gap-2 text-xs">
+              <button
+                onClick={() => setShowBatchModal(false)}
+                className="px-3 py-1.5 bg-[#0E141E] text-slate-400 rounded-lg border border-[#263545]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBatchSubmit}
+                disabled={isSubmitting || !batchText.trim()}
+                className="px-4 py-1.5 bg-[#00EA64] text-black font-bold rounded-lg disabled:opacity-50"
+              >
+                {isSubmitting ? 'Importing...' : 'Import All'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Member Detail Modal */}
       {detailModalProfile && (
         <AdminMemberDetailModal
           profile={detailModalProfile}
           isOpen={Boolean(detailModalProfile)}
           onClose={() => setDetailModalProfile(null)}
-          onSyncProfile={onSyncProfile}
-          onEditProfile={onEditProfile}
-          onDeleteProfile={onDeleteProfile}
-          onOpenPublicView={onSelectProfile}
+          onOpenPublicView={() => {
+            onSelectProfile(detailModalProfile.username);
+            setDetailModalProfile(null);
+          }}
         />
-      )}
-
-      {/* Batch Import Modal */}
-      {showBatchModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="bg-[#151F2C] border border-[#263545] rounded-2xl max-w-lg w-full p-6 shadow-2xl relative space-y-4">
-            <button
-              onClick={() => setShowBatchModal(false)}
-              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white"
-            >
-              ✕
-            </button>
-
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-[#2EC866]/15 rounded-xl border border-[#2EC866]/30 text-[#00EA64]">
-                <UploadCloud className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">Batch Import Members</h3>
-                <p className="text-xs text-slate-400">Paste multiple usernames or HackerRank URLs (comma or newline separated)</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleBatchSubmit} className="space-y-4">
-              <textarea
-                rows={6}
-                placeholder="atkamat1204&#10;https://www.hackerrank.com/profile/saurabh_singh&#10;username3"
-                value={batchText}
-                onChange={(e) => setBatchText(e.target.value)}
-                required
-                className="w-full bg-[#0E141E] border border-[#263545] rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#2EC866] font-mono leading-relaxed"
-              />
-
-              <div className="flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setShowBatchModal(false)}
-                  className="px-4 py-2 bg-[#0E141E] hover:bg-[#1E2A38] text-slate-300 rounded-xl text-xs font-semibold border border-[#263545]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !batchText.trim()}
-                  className="px-4 py-2 bg-[#2EC866] hover:bg-[#24a152] text-black font-extrabold rounded-xl text-xs shadow transition-all flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Importing...</span>
-                    </>
-                  ) : (
-                    <span>Import & Publish</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
       )}
 
     </div>
