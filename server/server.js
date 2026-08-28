@@ -295,9 +295,9 @@ export async function fetchHackerRankProfile(username) {
     if (error.message.includes('404')) {
       throw error;
     }
-    // Fallback if network blocked or rate limited
-    console.warn(`HackerRank API proxy fallback for ${cleanUser}:`, error.message);
-    return createFallbackProfile(cleanUser);
+    // Throw error so we don't overwrite existing valid data with fake data
+    console.warn(`HackerRank API proxy failed for ${cleanUser}:`, error.message);
+    throw new Error(`Failed to fetch live data for ${cleanUser}. Rate limit or network error.`);
   }
 }
 
@@ -678,6 +678,40 @@ if (fs.existsSync(DIST_DIR)) {
     res.sendFile(path.join(DIST_DIR, 'index.html'));
   });
 }
+
+// Background Auto-Sync every 10 minutes
+async function autoSyncProfiles() {
+  console.log('[AutoSync] Starting automatic background sync for all profiles...');
+  try {
+    const db = await readDb();
+    if (!db || db.length === 0) return;
+    
+    let updatedCount = 0;
+    for (let i = 0; i < db.length; i++) {
+      const user = db[i].username;
+      try {
+        const fresh = await fetchHackerRankProfile(user);
+        if (db[i].customMeta) {
+          fresh.customMeta = { ...fresh.customMeta, ...db[i].customMeta };
+        }
+        db[i] = fresh;
+        updatedCount++;
+      } catch (err) {
+        console.warn(`[AutoSync] Failed to sync ${user}:`, err.message);
+      }
+    }
+    
+    if (updatedCount > 0) {
+      await writeDb(db);
+      console.log(`[AutoSync] Successfully synced ${updatedCount} profiles.`);
+    }
+  } catch (e) {
+    console.error('[AutoSync] Error during background sync:', e.message);
+  }
+}
+
+// Run auto-sync every 10 minutes (600,000 ms)
+setInterval(autoSyncProfiles, 10 * 60 * 1000);
 
 if (!process.env.NETLIFY && process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
