@@ -1,16 +1,5 @@
 import React, { useState } from 'react';
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  ResponsiveContainer, 
-  Cell, 
-  Legend,
-  CartesianGrid
-} from 'recharts';
-import { 
   BarChart3, 
   Trophy, 
   Star, 
@@ -22,12 +11,14 @@ import {
   Award,
   Filter,
   Sparkles,
-  Flame
+  Flame,
+  Crown
 } from 'lucide-react';
 
 export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, activeUsername }) {
   const [selectedMetric, setSelectedMetric] = useState('solved'); // solved, stars, points, badges
   const [tagFilter, setTagFilter] = useState('ALL');
+  const [hoveredBar, setHoveredBar] = useState(null);
 
   // Filter profiles by tag/batch if any
   const availableTags = ['ALL', ...new Set(profiles.map(p => p.customMeta?.batch).filter(Boolean))];
@@ -36,8 +27,8 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
     tagFilter === 'ALL' || p.customMeta?.batch === tagFilter
   );
 
-  // Prepare data for Bar Graph 1: Solved Challenges across peers
-  const solvedData = filteredProfiles.map(p => ({
+  // Prepare data for Bar Graph: Solved Challenges across peers
+  const peerData = filteredProfiles.map(p => ({
     name: p.name || p.username,
     username: p.username,
     solved: p.totalSolved || 0,
@@ -45,7 +36,14 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
     points: p.totalPoints || 0,
     badges: p.badges?.length || 0,
     avatar: p.avatar,
-    isCurrent: p.username.toLowerCase() === activeUsername?.toLowerCase()
+    isCurrent: p.username.toLowerCase() === activeUsername?.toLowerCase(),
+    domainStars: {
+      python: p.badges?.find(b => b.badge_type === 'python' || b.badge_name?.toLowerCase().includes('python'))?.stars || 0,
+      cpp: p.badges?.find(b => b.badge_type === 'cpp' || b.badge_name?.toLowerCase().includes('c++'))?.stars || 0,
+      java: p.badges?.find(b => b.badge_type === 'java' || b.badge_name?.toLowerCase().includes('java'))?.stars || 0,
+      ps: p.badges?.find(b => b.badge_type === 'problem-solving' || b.badge_name?.toLowerCase().includes('problem'))?.stars || 0,
+      sql: p.badges?.find(b => b.badge_type === 'sql' || b.badge_name?.toLowerCase().includes('sql'))?.stars || 0,
+    }
   })).sort((a, b) => {
     if (selectedMetric === 'solved') return b.solved - a.solved;
     if (selectedMetric === 'stars') return b.stars - a.stars;
@@ -53,47 +51,7 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
     return b.badges - a.badges;
   });
 
-  // Prepare data for Bar Graph 2: Language & Core Domain Star breakdown across peers
-  const domainComparisonData = filteredProfiles.map(p => {
-    const py = p.badges?.find(b => b.badge_type === 'python' || b.badge_name?.toLowerCase().includes('python'))?.stars || 0;
-    const cpp = p.badges?.find(b => b.badge_type === 'cpp' || b.badge_name?.toLowerCase().includes('c++'))?.stars || 0;
-    const java = p.badges?.find(b => b.badge_type === 'java' || b.badge_name?.toLowerCase().includes('java'))?.stars || 0;
-    const ps = p.badges?.find(b => b.badge_type === 'problem-solving' || b.badge_name?.toLowerCase().includes('problem'))?.stars || 0;
-    const sql = p.badges?.find(b => b.badge_type === 'sql' || b.badge_name?.toLowerCase().includes('sql'))?.stars || 0;
-
-    return {
-      name: p.name ? p.name.split(' ')[0] : p.username,
-      username: p.username,
-      Python: py,
-      'C++': cpp,
-      Java: java,
-      'Problem Solving': ps,
-      SQL: sql,
-      totalStars: p.totalStars || 0
-    };
-  });
-
-  // Prepare custom Tooltip for Recharts
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-[#151F2C] border border-[#263545] p-3 rounded-xl shadow-2xl text-xs font-mono">
-          <p className="font-bold text-white text-sm mb-1">{data.name || label}</p>
-          <p className="text-[#00EA64] font-bold">
-            {selectedMetric === 'solved' && `${data.solved} Problems Solved`}
-            {selectedMetric === 'stars' && `★ ${data.stars} Total Stars`}
-            {selectedMetric === 'points' && `${data.points} Track Points`}
-            {selectedMetric === 'badges' && `${data.badges} Skill Badges`}
-          </p>
-          <p className="text-[11px] text-slate-400 mt-1">Click bar to open peer profile</p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const topPeer = solvedData[0];
+  const maxValue = Math.max(...peerData.map(p => p[selectedMetric]), 1);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -106,10 +64,10 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Peer Comparison & Visual Analytics
+              Peer Comparison & Visual Bar Graphs
             </h1>
             <p className="text-xs text-slate-400">
-              Interactive bar charts comparing coding volume, badge mastery, and skill progression across all peers
+              Interactive bar graphs comparing coding problem volume, badge stars, and track scores across peers
             </p>
           </div>
         </div>
@@ -131,16 +89,16 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
         )}
       </div>
 
-      {/* Main Bar Chart Card: Peer Ranking & Comparison */}
-      <div className="hr-card p-5 sm:p-6 space-y-4">
+      {/* Main Comparative Bar Graph Card */}
+      <div className="hr-card p-5 sm:p-6 space-y-5">
         
         {/* Metric Selector Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#263545]/60">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#263545]/60">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <span>Peer Benchmarking Bar Graph</span>
               <span className="text-xs font-mono font-bold text-[#00EA64] bg-[#2EC866]/15 px-2 py-0.5 rounded-full border border-[#2EC866]/30">
-                {solvedData.length} Peers Tracked
+                {peerData.length} Peers Tracked
               </span>
             </h3>
             <p className="text-xs text-slate-400">Click any peer bar to inspect their full individual profile and dashboard</p>
@@ -168,69 +126,91 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
           </div>
         </div>
 
-        {/* Recharts Bar Chart */}
-        <div className="h-80 sm:h-96 w-full pt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={solvedData}
-              margin={{ top: 20, right: 20, left: 0, bottom: 40 }}
-              onClick={(e) => {
-                if (e && e.activePayload && e.activePayload[0]) {
-                  onSelectProfile(e.activePayload[0].payload.username);
-                }
-              }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#263545" vertical={false} />
-              <XAxis 
-                dataKey="name" 
-                stroke="#94A3B8" 
-                fontSize={11}
-                tickLine={false}
-                angle={-25}
-                textAnchor="end"
-                interval={0}
-              />
-              <YAxis 
-                stroke="#94A3B8" 
-                fontSize={11}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar 
-                dataKey={selectedMetric} 
-                radius={[8, 8, 0, 0]}
-                cursor="pointer"
+        {/* Responsive Horizontal / Vertical Bar Chart */}
+        <div className="space-y-3.5 pt-2">
+          {peerData.map((peer, idx) => {
+            const val = peer[selectedMetric];
+            const pct = Math.min(100, Math.round((val / maxValue) * 100));
+            const isWinner = idx === 0;
+            const isHovered = hoveredBar === peer.username;
+
+            return (
+              <div
+                key={peer.username}
+                onClick={() => onSelectProfile(peer.username)}
+                onMouseEnter={() => setHoveredBar(peer.username)}
+                onMouseLeave={() => setHoveredBar(null)}
+                className={`p-3.5 rounded-xl border transition-all cursor-pointer group ${
+                  peer.isCurrent
+                    ? 'bg-[#2EC866]/10 border-[#2EC866] shadow-[0_0_15px_rgba(46,200,102,0.15)]'
+                    : 'bg-[#0E141E] border-[#263545] hover:border-[#384d63] hover:bg-[#151F2C]'
+                }`}
               >
-                {solvedData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={entry.isCurrent ? '#00EA64' : '#2EC866'} 
-                    opacity={entry.isCurrent ? 1 : 0.75}
-                    stroke={entry.isCurrent ? '#FFFFFF' : '#2EC866'}
-                    strokeWidth={entry.isCurrent ? 2 : 0}
+                <div className="flex items-center justify-between gap-3 text-xs mb-2">
+                  
+                  {/* Peer Info */}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-6 h-6 rounded-full bg-[#151F2C] border border-[#263545] flex items-center justify-center font-mono font-bold text-[11px] text-slate-300 shrink-0">
+                      {isWinner ? '🥇' : `#${idx + 1}`}
+                    </div>
+                    <img
+                      src={peer.avatar}
+                      alt={peer.username}
+                      className="w-6 h-6 rounded-full object-cover bg-slate-800 border border-[#2EC866]/40 shrink-0"
+                      onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${peer.username}`; }}
+                    />
+                    <div className="truncate">
+                      <span className="font-bold text-white group-hover:text-[#00EA64] transition-colors mr-2">
+                        {peer.name}
+                      </span>
+                      <span className="font-mono text-slate-400 text-[11px]">@{peer.username}</span>
+                    </div>
+                  </div>
+
+                  {/* Metric Value Label */}
+                  <div className="text-right shrink-0 font-mono">
+                    <span className={`text-sm font-bold ${peer.isCurrent ? 'text-[#00EA64]' : 'text-white'}`}>
+                      {selectedMetric === 'solved' && `${val} Solved`}
+                      {selectedMetric === 'stars' && `★ ${val} Stars`}
+                      {selectedMetric === 'points' && `${val} pts`}
+                      {selectedMetric === 'badges' && `${val} Badges`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Animated Horizontal Bar */}
+                <div className="w-full h-3 bg-[#151F2C] rounded-full overflow-hidden border border-[#263545]/60 flex">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${
+                      peer.isCurrent 
+                        ? 'bg-gradient-to-r from-[#2EC866] via-[#00EA64] to-[#FFFFFF] shadow-[0_0_8px_rgba(0,234,100,0.8)]' 
+                        : isWinner
+                        ? 'bg-gradient-to-r from-amber-500 to-amber-300'
+                        : 'bg-gradient-to-r from-[#2EC866] to-[#00EA64]'
+                    }`}
+                    style={{ width: `${Math.max(6, pct)}%` }}
                   />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Highlight Banner for active peer */}
+        {/* Active Highlight Banner */}
         {activeUsername && (
           <div className="flex items-center justify-between p-3 rounded-xl bg-[#0E141E] border border-[#263545] text-xs font-mono">
             <span className="text-slate-400">
-              Active Highlight: <span className="text-[#00EA64] font-bold">@{activeUsername}</span>
+              Active Peer: <span className="text-[#00EA64] font-bold">@{activeUsername}</span>
             </span>
             <span className="text-slate-400">
-              Click any bar to instantly switch view
+              Click any bar to switch profile
             </span>
           </div>
         )}
 
       </div>
 
-      {/* Second Card: Domain Stars Comparison Across Peers */}
+      {/* Second Card: Domain Star Mastery Breakdown Bar Graph */}
       <div className="hr-card p-5 sm:p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -239,35 +219,67 @@ export default function PeerAnalyticsGraphs({ profiles = [], onSelectProfile, ac
             </div>
             <div>
               <h3 className="text-base font-bold text-white">
-                Domain Star Mastery Comparison (Python, C++, Java, Problem Solving, SQL)
+                Domain Star Depth across Peers (Python, C++, Java, Problem Solving, SQL)
               </h3>
-              <p className="text-xs text-slate-400">Side-by-side star depth for each tracked peer across key domains</p>
+              <p className="text-xs text-slate-400">Breakdown of domain star achievements for each peer</p>
             </div>
           </div>
         </div>
 
-        <div className="h-80 w-full pt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={domainComparisonData}
-              margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2">
+          {peerData.map((peer) => (
+            <div
+              key={peer.username}
+              onClick={() => onSelectProfile(peer.username)}
+              className="p-4 rounded-xl bg-[#0E141E] border border-[#263545] hover:border-[#2EC866]/50 transition-all cursor-pointer group"
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#263545" vertical={false} />
-              <XAxis dataKey="name" stroke="#94A3B8" fontSize={12} tickLine={false} />
-              <YAxis stroke="#94A3B8" fontSize={12} tickLine={false} domain={[0, 6]} ticks={[0, 1, 2, 3, 4, 5, 6]} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#151F2C', borderColor: '#263545', borderRadius: '0.75rem', fontSize: '12px' }}
-                itemStyle={{ color: '#E2E8F0' }}
-              />
-              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-              <Bar dataKey="Python" fill="#38BDF8" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="C++" fill="#818CF8" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Java" fill="#FB923C" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Problem Solving" fill="#00EA64" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="SQL" fill="#F87171" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <img
+                    src={peer.avatar}
+                    alt={peer.username}
+                    className="w-6 h-6 rounded-full bg-slate-800 border border-[#263545]"
+                    onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${peer.username}`; }}
+                  />
+                  <div>
+                    <p className="text-xs font-bold text-white group-hover:text-[#00EA64] transition-colors">{peer.name}</p>
+                    <p className="text-[10px] font-mono text-slate-400">@{peer.username}</p>
+                  </div>
+                </div>
+
+                <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                  ★ {peer.stars} Total
+                </span>
+              </div>
+
+              {/* Star Domains Bars */}
+              <div className="space-y-2 text-[11px] font-mono">
+                {[
+                  { label: 'Python', stars: peer.domainStars.python, max: 5, color: 'bg-sky-400' },
+                  { label: 'C++', stars: peer.domainStars.cpp, max: 5, color: 'bg-blue-400' },
+                  { label: 'Java', stars: peer.domainStars.java, max: 5, color: 'bg-orange-400' },
+                  { label: 'Problem Solving', stars: peer.domainStars.ps, max: 6, color: 'bg-[#00EA64]' },
+                  { label: 'SQL', stars: peer.domainStars.sql, max: 5, color: 'bg-red-400' }
+                ].map((d, dIdx) => (
+                  <div key={dIdx} className="flex items-center justify-between gap-2">
+                    <span className="text-slate-400 w-24 truncate">{d.label}</span>
+                    <div className="flex-1 h-2 bg-[#151F2C] rounded-full overflow-hidden border border-[#263545]/40">
+                      <div
+                        className={`h-full ${d.color} rounded-full`}
+                        style={{ width: `${(d.stars / d.max) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-amber-400 font-bold w-8 text-right">
+                      {d.stars > 0 ? `${d.stars}★` : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+            </div>
+          ))}
         </div>
+
       </div>
 
     </div>

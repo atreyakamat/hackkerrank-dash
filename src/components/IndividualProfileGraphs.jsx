@@ -1,32 +1,21 @@
 import React from 'react';
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  ResponsiveContainer, 
-  Cell, 
-  CartesianGrid,
-  PieChart,
-  Pie
-} from 'recharts';
-import { 
-  Activity, 
   BarChart2, 
-  TrendingUp, 
-  Zap, 
   Star, 
+  Zap, 
   Award, 
-  Layers,
+  TrendingUp, 
+  Layers, 
+  CheckCircle2, 
+  Activity,
   Code2
 } from 'lucide-react';
 
 export default function IndividualProfileGraphs({ profile }) {
   if (!profile) return null;
 
-  // Prepare data for individual score bar chart
-  const trackScoresData = (profile.scores || [])
+  // Process tracks with scores
+  const trackScores = (profile.scores || [])
     .filter(s => (s.practice?.score > 0) || (s.practice?.rank > 0))
     .map(s => {
       const badgeMatch = (profile.badges || []).find(
@@ -41,35 +30,21 @@ export default function IndividualProfileGraphs({ profile }) {
     })
     .sort((a, b) => b.score - a.score);
 
-  // If no scores recorded, fallback to badge points
-  const displayTracks = trackScoresData.length > 0 ? trackScoresData : (profile.badges || []).map(b => ({
+  // Fallback to badges if track scores array empty
+  const displayTracks = trackScores.length > 0 ? trackScores : (profile.badges || []).map(b => ({
     name: b.badge_name,
     score: b.current_points || 0,
     solved: b.solved || 0,
     stars: b.stars || 0
   }));
 
-  // Prepare star progression data
-  const starProgressData = (profile.badges || []).map(b => ({
-    name: b.badge_name,
-    stars: b.stars || 0,
-    maxStars: b.total_stars || 5,
-    progress: Math.round((b.progress_to_next_star || 0.5) * 100),
-    currentPoints: b.current_points || 0,
-    totalPoints: b.total_points || 200
-  }));
+  const maxTrackScore = Math.max(...displayTracks.map(t => t.score), 100);
 
-  // Difficulty estimation for donut chart
+  // Difficulty stats
   const totalSolved = profile.totalSolved || 15;
   const easy = Math.round(totalSolved * 0.65);
   const med = Math.round(totalSolved * 0.28);
   const hard = Math.max(0, totalSolved - easy - med);
-
-  const difficultyData = [
-    { name: 'Easy', value: easy, color: '#00EA64' },
-    { name: 'Medium', value: med, color: '#FFA116' },
-    { name: 'Hard', value: hard, color: '#EF4444' }
-  ];
 
   return (
     <div className="space-y-6">
@@ -88,7 +63,7 @@ export default function IndividualProfileGraphs({ profile }) {
                   @{profile.username}
                 </span>
               </h3>
-              <p className="text-xs text-slate-400">Track practice scores and solved challenge volume across technologies</p>
+              <p className="text-xs text-slate-400">Practice points and challenges completed across languages and topics</p>
             </div>
           </div>
         </div>
@@ -98,41 +73,41 @@ export default function IndividualProfileGraphs({ profile }) {
             No track points recorded yet for this peer.
           </div>
         ) : (
-          <div className="h-64 sm:h-72 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={displayTracks}
-                margin={{ top: 15, right: 15, left: -10, bottom: 25 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#263545" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#94A3B8" 
-                  fontSize={11} 
-                  tickLine={false} 
-                  angle={-15}
-                  textAnchor="end"
-                />
-                <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#151F2C', borderColor: '#263545', borderRadius: '0.75rem', fontSize: '12px' }}
-                  itemStyle={{ color: '#00EA64' }}
-                />
-                <Bar dataKey="score" fill="#2EC866" radius={[6, 6, 0, 0]} name="Practice Points">
-                  {displayTracks.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={index === 0 ? '#00EA64' : '#2EC866'} 
+          <div className="space-y-3 pt-2">
+            {displayTracks.map((t, idx) => {
+              const pct = Math.min(100, Math.round((t.score / maxTrackScore) * 100));
+
+              return (
+                <div key={idx} className="p-3 bg-[#0E141E] rounded-xl border border-[#263545] space-y-1.5 group hover:border-[#2EC866]/40 transition-colors">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white group-hover:text-[#00EA64] transition-colors">{t.name}</span>
+                      {t.stars > 0 && (
+                        <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
+                          ★ {t.stars}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {t.solved > 0 && <span className="text-slate-400 text-[11px]">{t.solved} solved</span>}
+                      <span className="font-bold text-[#00EA64] text-xs">{t.score} pts</span>
+                    </div>
+                  </div>
+
+                  <div className="w-full h-2.5 bg-[#151F2C] rounded-full overflow-hidden border border-[#263545]/60">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#2EC866] to-[#00EA64] rounded-full transition-all duration-500"
+                      style={{ width: `${Math.max(t.score > 0 ? 6 : 0, pct)}%` }}
                     />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Two Column Grid: Star Progressions & Solved Difficulty Distribution */}
+      {/* Two Column Grid: Star Progression & Challenge Complexity */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         
         {/* Left 7 cols: Star Next Milestone Progress Bars */}
@@ -142,39 +117,42 @@ export default function IndividualProfileGraphs({ profile }) {
             <h4 className="text-sm font-bold text-white">Next Star Milestone Progress</h4>
           </div>
 
-          <div className="space-y-3.5 pt-1">
-            {starProgressData.map((item, idx) => (
-              <div key={idx} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-white font-bold">{item.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-amber-400 font-bold">★ {item.stars} / {item.maxStars}</span>
-                    <span className="text-slate-400">({item.currentPoints} pts)</span>
+          <div className="space-y-3 pt-1">
+            {(profile.badges || []).map((b, idx) => {
+              const progress = Math.round((b.progress_to_next_star || 0.4) * 100);
+
+              return (
+                <div key={idx} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-white font-bold">{b.badge_name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-amber-400 font-bold">★ {b.stars} / {b.total_stars || 5}</span>
+                      <span className="text-slate-400 text-[11px]">({b.current_points} pts)</span>
+                    </div>
+                  </div>
+
+                  <div className="w-full h-2 bg-[#0E141E] rounded-full overflow-hidden border border-[#263545]">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#2EC866] to-[#00EA64] rounded-full transition-all duration-500"
+                      style={{ width: `${Math.max(8, progress)}%` }}
+                    />
                   </div>
                 </div>
-
-                <div className="w-full h-2.5 bg-[#0E141E] rounded-full overflow-hidden border border-[#263545]">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#2EC866] to-[#00EA64] rounded-full transition-all duration-500"
-                    style={{ width: `${Math.max(8, item.progress)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* Right 5 cols: Solved Problems by Difficulty */}
+        {/* Right 5 cols: Challenge Complexity Breakdown */}
         <div className="md:col-span-5 hr-card p-5 space-y-3 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-[#00EA64]" />
               <h4 className="text-sm font-bold text-white">Challenge Difficulty Mix</h4>
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Problem complexity solved</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Problem complexity solved on HackerRank</p>
           </div>
 
-          {/* Difficulty Bars */}
           <div className="space-y-2.5 py-2 font-mono text-xs">
             <div className="flex items-center justify-between p-2 rounded-lg bg-[#0E141E] border border-[#263545]">
               <span className="text-[#00EA64] font-bold">Easy Challenges</span>
