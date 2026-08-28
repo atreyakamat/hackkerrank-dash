@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabase, isBrowserSupabaseAvailable } from './supabase';
 
 const API_BASE = '/api';
 
@@ -67,7 +68,7 @@ function getLocalProfiles() {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch (e) {
-    console.error('Error reading localStorage:', e);
+    // ignore
   }
   return [];
 }
@@ -76,7 +77,7 @@ function saveLocalProfiles(profiles) {
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profiles));
   } catch (e) {
-    console.error('Error saving localStorage:', e);
+    // ignore
   }
 }
 
@@ -88,6 +89,39 @@ const getAuthHeaders = () => {
   if (pwd) headers['x-admin-key'] = pwd;
   return headers;
 };
+
+function mapSupabaseRowToProfile(row) {
+  return {
+    username: row.username,
+    name: row.name || row.username,
+    personal_first_name: row.personal_first_name || '',
+    personal_last_name: row.personal_last_name || '',
+    avatar: row.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${row.username}`,
+    country: row.country || 'India',
+    school: row.school || '',
+    company: row.company || '',
+    job_title: row.job_title || '',
+    github_url: row.github_url || '',
+    linkedin_url: row.linkedin_url || '',
+    website: row.website || '',
+    created_at: row.created_at,
+    level: row.level || 1,
+    totalSolved: row.total_solved ?? 0,
+    totalStars: row.total_stars ?? 0,
+    totalPoints: Number(row.total_points ?? 0),
+    bestRank: row.best_rank || 'Top 10%',
+    badges: Array.isArray(row.badges) ? row.badges : [],
+    scores: Array.isArray(row.scores) ? row.scores : [],
+    activeTracks: Array.isArray(row.active_tracks) ? row.active_tracks : [],
+    submissions: Array.isArray(row.submissions) ? row.submissions : [],
+    heatmap: (row.heatmap && typeof row.heatmap === 'object') ? row.heatmap : {},
+    lastSyncedAt: row.last_synced_at,
+    lastSuccessfulSyncAt: row.last_successful_sync_at,
+    lastSyncStatus: row.last_sync_status || 'success',
+    lastSyncError: row.last_sync_error,
+    customMeta: row.custom_meta || { department: 'Engineering', batch: 'Core Group', status: 'Active', notes: '' }
+  };
+}
 
 // API Service functions
 export const api = {
@@ -108,8 +142,27 @@ export const api = {
     return true;
   },
 
-  // Get all saved profiles
+  // Get all saved profiles (Supabase Direct -> Netlify API -> Cache)
   async getProfiles() {
+    // 1. Try Direct Supabase Query first if available
+    if (isBrowserSupabaseAvailable()) {
+      try {
+        const { data, error } = await supabase
+          .from('tracked_profiles')
+          .select('*')
+          .order('total_solved', { ascending: false });
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          const mapped = data.map(mapSupabaseRowToProfile);
+          saveLocalProfiles(mapped);
+          return mapped;
+        }
+      } catch (err) {
+        console.warn('[API] Browser Supabase fetch skipped:', err.message);
+      }
+    }
+
+    // 2. Fallback to /api/profiles
     try {
       const res = await axios.get(`${API_BASE}/profiles`, { timeout: 8000 });
       if (res.data?.success && Array.isArray(res.data.data)) {
@@ -125,6 +178,24 @@ export const api = {
   // Get or fetch single profile
   async getProfile(username, forceRefresh = false) {
     const clean = extractUsername(username);
+
+    // 1. Direct Supabase Query
+    if (isBrowserSupabaseAvailable() && !forceRefresh) {
+      try {
+        const { data, error } = await supabase
+          .from('tracked_profiles')
+          .select('*')
+          .eq('username', clean)
+          .single();
+
+        if (!error && data) {
+          return mapSupabaseRowToProfile(data);
+        }
+      } catch (err) {
+        // continue
+      }
+    }
+
     try {
       const url = `${API_BASE}/profile/${clean}${forceRefresh ? '?forceRefresh=true' : ''}`;
       const res = await axios.get(url, { timeout: 10000 });
@@ -135,7 +206,6 @@ export const api = {
       console.warn(`Error fetching profile for ${clean}:`, e.message);
     }
     
-    // Check local storage
     const local = getLocalProfiles();
     const found = local.find(p => p.username.toLowerCase() === clean.toLowerCase());
     if (found) return found;
