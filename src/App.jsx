@@ -17,6 +17,7 @@ import CertificationsSection from './components/CertificationsSection';
 import PeerAnalyticsGraphs from './components/PeerAnalyticsGraphs';
 import IndividualProfileGraphs from './components/IndividualProfileGraphs';
 import AdminPanel from './components/AdminPanel';
+import AdminLoginModal from './components/AdminLoginModal';
 import LeaderboardView from './components/LeaderboardView';
 import ComparisonView from './components/ComparisonView';
 import EditProfileModal from './components/EditProfileModal';
@@ -35,7 +36,8 @@ import {
   Share2,
   Lock,
   Unlock,
-  ArrowLeft
+  ArrowLeft,
+  LogOut
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -47,6 +49,10 @@ export default function App() {
   const isDirectAdminUrl = path === '/hacko/admin' || path === '/hacko/admin/' || searchParams.get('admin') === 'true';
 
   const [isAdminRoute, setIsAdminRoute] = useState(isDirectAdminUrl);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(
+    () => sessionStorage.getItem('hr_admin_auth') === 'true'
+  );
+  
   const initialPeer = searchParams.get('peer') || 'atkamat1204';
   
   // DEFAULT TO 'dashboard' FOR CLEAN INITIAL VIEW
@@ -156,7 +162,7 @@ export default function App() {
     }
   };
 
-  // Add profile (single)
+  // Add profile (single) & push to frontend
   const handleAddProfile = async (input, customMeta) => {
     const fresh = await api.addProfile(input, customMeta);
     setProfiles(prev => {
@@ -169,6 +175,7 @@ export default function App() {
       return [fresh, ...prev];
     });
     setActiveUsername(fresh.username);
+    await loadAllProfiles(); // reload to confirm persistent sync
     return fresh;
   };
 
@@ -188,6 +195,7 @@ export default function App() {
         setActiveUsername(remaining[0].username);
       }
     }
+    await loadAllProfiles();
   };
 
   // Save metadata
@@ -196,6 +204,7 @@ export default function App() {
     if (res?.data) {
       setProfiles(prev => prev.map(p => p.username.toLowerCase() === username.toLowerCase() ? { ...p, ...res.data } : p));
     }
+    await loadAllProfiles();
   };
 
   // Quick add submit handler
@@ -232,24 +241,50 @@ export default function App() {
     window.history.pushState({}, '', '/');
   };
 
+  // Lock / Logout Admin
+  const handleLogoutAdmin = () => {
+    sessionStorage.removeItem('hr_admin_auth');
+    localStorage.removeItem('hr_admin_pwd');
+    setIsAdminAuthenticated(false);
+    handleExitAdmin();
+  };
+
   return (
     <div className="min-h-screen bg-[#0E141E] text-slate-100 flex flex-col selection:bg-[#2EC866]/30 selection:text-[#00EA64]">
       
-      {/* Secret Admin Banner when accessed at /hacko/admin */}
-      {isAdminRoute && (
+      {/* Admin Password Authentication Screen for /hacko/admin */}
+      {isAdminRoute && !isAdminAuthenticated && (
+        <AdminLoginModal
+          onLoginSuccess={() => setIsAdminAuthenticated(true)}
+          onCancel={handleExitAdmin}
+        />
+      )}
+
+      {/* Secret Admin Banner when accessed at /hacko/admin and authenticated */}
+      {isAdminRoute && isAdminAuthenticated && (
         <div className="bg-gradient-to-r from-amber-500/20 via-amber-600/10 to-transparent border-b border-amber-500/30 px-4 py-2 text-xs font-mono flex items-center justify-between text-amber-300">
           <div className="flex items-center gap-2">
             <Unlock className="w-3.5 h-3.5 text-amber-400" />
             <span className="font-bold">ADMIN CONSOLE ACTIVE (/hacko/admin)</span>
-            <span className="hidden md:inline text-slate-400">• Hidden from public view. Add and manage peer profiles.</span>
+            <span className="hidden md:inline text-slate-400">• Password verified. Changes persist live on Netlify & public hub.</span>
           </div>
-          <button
-            onClick={handleExitAdmin}
-            className="flex items-center gap-1 px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-lg border border-amber-500/40 text-[11px] font-bold transition-all"
-          >
-            <ArrowLeft className="w-3 h-3" />
-            <span>Exit to Public Hub</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExitAdmin}
+              className="flex items-center gap-1 px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-lg border border-amber-500/40 text-[11px] font-bold transition-all"
+            >
+              <ArrowLeft className="w-3 h-3" />
+              <span>View Public Hub</span>
+            </button>
+            <button
+              onClick={handleLogoutAdmin}
+              className="flex items-center gap-1 px-2.5 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg border border-red-500/40 text-[11px] font-bold transition-all"
+              title="Lock Admin Console"
+            >
+              <LogOut className="w-3 h-3" />
+              <span>Lock Admin</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -263,7 +298,7 @@ export default function App() {
         onSyncCurrent={handleSyncCurrent}
         isSyncing={isSyncing}
         openAddModal={() => setShowAddModal(true)}
-        isAdminRoute={isAdminRoute}
+        isAdminRoute={isAdminRoute && isAdminAuthenticated}
         onExitAdmin={handleExitAdmin}
       />
 
@@ -293,7 +328,7 @@ export default function App() {
             <ProfileHero
               profile={currentProfile}
               onEditClick={(p) => setEditProfileData(p)}
-              isAdminRoute={isAdminRoute}
+              isAdminRoute={isAdminRoute && isAdminAuthenticated}
             />
 
             {/* Key Metrics Overview Bar */}
@@ -351,7 +386,7 @@ export default function App() {
             activeUsername={activeUsername}
             onAddProfile={handleAddProfile}
             openAddModal={() => setShowAddModal(true)}
-            isAdminRoute={isAdminRoute}
+            isAdminRoute={isAdminRoute && isAdminAuthenticated}
           />
         )}
 
@@ -372,8 +407,8 @@ export default function App() {
           />
         )}
 
-        {/* TAB 5: Admin Hub (Add Peer Profiles & Manage - ONLY AT /hacko/admin) */}
-        {activeTab === 'admin' && isAdminRoute && (
+        {/* TAB 5: Admin Hub (Add Peer Profiles & Manage - ONLY AT /hacko/admin & AUTHENTICATED) */}
+        {activeTab === 'admin' && isAdminRoute && isAdminAuthenticated && (
           <AdminPanel
             profiles={profiles}
             onAddProfile={handleAddProfile}
@@ -414,7 +449,7 @@ export default function App() {
       </footer>
 
       {/* Edit Profile Metadata Modal (Admin Only) */}
-      {editProfileData && isAdminRoute && (
+      {editProfileData && isAdminRoute && isAdminAuthenticated && (
         <EditProfileModal
           profile={editProfileData}
           isOpen={Boolean(editProfileData)}
@@ -424,7 +459,7 @@ export default function App() {
       )}
 
       {/* Quick Add Modal (Admin Only) */}
-      {showAddModal && isAdminRoute && (
+      {showAddModal && isAdminRoute && isAdminAuthenticated && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-[#151F2C] border border-[#263545] rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
             <button

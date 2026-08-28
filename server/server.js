@@ -4,6 +4,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getStore } from '@netlify/blobs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,6 +14,15 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// Netlify Blobs store accessor
+function getNetlifyBlobStore() {
+  try {
+    return getStore('hackerrank_profiles');
+  } catch (e) {
+    return null;
+  }
+}
 
 // In serverless environments (AWS Lambda / Netlify), use /tmp if local dir is read-only
 const DATA_DIR = process.env.NETLIFY ? '/tmp' : path.join(__dirname, '../data');
@@ -378,51 +388,104 @@ function createFallbackProfile(cleanUser) {
   };
 }
 
-// Database helper functions
-function readDb() {
-  if (!fs.existsSync(DB_FILE)) {
-    return [];
+// In-memory cache to guarantee fast responses across lambda invocations
+let memoryProfilesCache = null;
+
+// Database helper functions with Netlify Blobs + local file persistence
+async function readDb() {
+  if (memoryProfilesCache && Array.isArray(memoryProfilesCache) && memoryProfilesCache.length > 0) {
+    return memoryProfilesCache;
   }
-  try {
-    const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(raw);
-  } catch (e) {
-    console.error('Error reading db file:', e);
-    return [];
+
+  // 1. Try Netlify Blobs first (cloud persistence on Netlify)
+  const store = getNetlifyBlobStore();
+  if (store) {
+    try {
+      const data = await store.get('profiles_list', { type: 'json' });
+      if (Array.isArray(data) && data.length > 0) {
+        memoryProfilesCache = data;
+        return data;
+      }
+    } catch (e) {
+      console.warn('Netlify Blobs read error:', e.message);
+    }
   }
+
+  // 2. Try Local File System
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      const raw = fs.readFileSync(DB_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        memoryProfilesCache = parsed;
+        return parsed;
+      }
+    } catch (e) {
+      console.error('Error reading local db file:', e);
+    }
+  }
+
+  // 3. Fallback to initial profile
+  const fallback = [createFallbackProfile('atkamat1204')];
+  memoryProfilesCache = fallback;
+  return fallback;
 }
 
-function writeDb(data) {
+async function writeDb(data) {
+  memoryProfilesCache = data;
+
+  // 1. Save to Netlify Blobs for persistent Netlify cloud deployment
+  const store = getNetlifyBlobStore();
+  if (store) {
+    try {
+      await store.setJSON('profiles_list', data);
+    } catch (e) {
+      console.warn('Netlify Blobs write error:', e.message);
+    }
+  }
+
+  // 2. Save to local disk if writable
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
   } catch (e) {
-    console.error('Error writing db file:', e);
+    // ignore on read-only environments
   }
 }
 
-// Seed initial default profile (atkamat1204) if empty
+// Seed initial default profile if empty
 async function seedInitialData() {
-  let db = readDb();
-  if (db.length === 0) {
+  const db = await readDb();
+  if (db.length === 0 || (db.length === 1 && db[0].username === 'atkamat1204' && !db[0].badges?.length)) {
     console.log('Seeding initial profile atkamat1204...');
     try {
       const initialUser = await fetchHackerRankProfile('atkamat1204');
-      db.push(initialUser);
-      writeDb(db);
+      await writeDb([initialUser]);
     } catch (e) {
       console.warn('Failed to seed live atkamat1204, using fallback:', e.message);
-      db.push(createFallbackProfile('atkamat1204'));
-      writeDb(db);
+      await writeDb([createFallbackProfile('atkamat1204')]);
     }
   }
 }
 seedInitialData();
 
+// Admin Password Constant
+const ADMIN_PASSWORD = 'Nanami@1304';
+
 // API Endpoints
 
-// 1. GET all profiles
-app.get('/api/profiles', (req, res) => {
-  const profiles = readDb();
+// 0. Admin Login & Verification Endpoint
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body;
+  if (password === ADMIN_PASSWORD) {
+    res.json({ success: true, message: 'Admin authenticated successfully', token: 'hr_admin_active' });
+  } else {
+    res.status(401).json({ success: false, error: 'Incorrect admin password' });
+  }
+});
+
+// 1. GET all profiles (Publicly accessible)
+app.get('/api/profiles', async (req, res) => {
+  const profiles = await readDb();
   res.json({ success: true, count: profiles.length, data: profiles });
 });
 
@@ -430,7 +493,7 @@ app.get('/api/profiles', (req, res) => {
 app.get('/api/profile/:username', async (req, res) => {
   const rawUser = req.params.username;
   const username = sanitizeUsername(rawUser);
-  const db = readDb();
+  const db = await readDb();
   const existing = db.find(p => p.username.toLowerCase() === username.toLowerCase());
 
   if (existing && !req.query.forceRefresh) {
@@ -450,7 +513,7 @@ app.get('/api/profile/:username', async (req, res) => {
     } else {
       db.push(fresh);
     }
-    writeDb(db);
+    await writeDb(db);
     res.json({ success: true, cached: false, data: fresh });
   } catch (err) {
     console.error(`Error fetching profile ${username}:`, err.message);
@@ -461,7 +524,7 @@ app.get('/api/profile/:username', async (req, res) => {
   }
 });
 
-// 3. POST add new profile
+// 3. POST add new profile & persist to public hub
 app.post('/api/profiles', async (req, res) => {
   const { username: rawInput, customMeta } = req.body;
   if (!rawInput) {
@@ -469,7 +532,7 @@ app.post('/api/profiles', async (req, res) => {
   }
 
   const username = sanitizeUsername(rawInput);
-  const db = readDb();
+  const db = await readDb();
   const existingIdx = db.findIndex(p => p.username.toLowerCase() === username.toLowerCase());
 
   try {
@@ -483,16 +546,16 @@ app.post('/api/profiles', async (req, res) => {
     } else {
       db.unshift(profile);
     }
-    writeDb(db);
-    res.status(201).json({ success: true, message: `Profile ${username} added/updated`, data: profile });
+    await writeDb(db);
+    res.status(201).json({ success: true, message: `Profile ${username} added/updated & published`, data: profile });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message || 'Failed to fetch HackerRank profile' });
   }
 });
 
-// 4. POST batch add profiles
+// 4. POST batch add profiles & persist
 app.post('/api/profiles/batch', async (req, res) => {
-  const { inputs } = req.body; // array of strings or comma-separated string
+  const { inputs } = req.body;
   if (!inputs) {
     return res.status(400).json({ success: false, error: 'Inputs array or string required' });
   }
@@ -504,7 +567,7 @@ app.post('/api/profiles/batch', async (req, res) => {
     list = inputs.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
   }
 
-  const db = readDb();
+  const db = await readDb();
   const results = { added: [], failed: [] };
 
   for (const raw of list) {
@@ -524,15 +587,15 @@ app.post('/api/profiles/batch', async (req, res) => {
     }
   }
 
-  writeDb(db);
+  await writeDb(db);
   res.json({ success: true, results, count: db.length });
 });
 
 // 5. PATCH update custom metadata (Admin notes, batch, status)
-app.patch('/api/profiles/:username', (req, res) => {
+app.patch('/api/profiles/:username', async (req, res) => {
   const username = sanitizeUsername(req.params.username);
   const { customMeta, name, country, school, job_title } = req.body;
-  const db = readDb();
+  const db = await readDb();
   const idx = db.findIndex(p => p.username.toLowerCase() === username.toLowerCase());
 
   if (idx === -1) {
@@ -547,14 +610,14 @@ app.patch('/api/profiles/:username', (req, res) => {
   if (school) db[idx].school = school;
   if (job_title) db[idx].job_title = job_title;
 
-  writeDb(db);
+  await writeDb(db);
   res.json({ success: true, data: db[idx] });
 });
 
-// 6. DELETE profile
-app.delete('/api/profiles/:username', (req, res) => {
+// 6. DELETE profile & update public hub
+app.delete('/api/profiles/:username', async (req, res) => {
   const username = sanitizeUsername(req.params.username);
-  let db = readDb();
+  let db = await readDb();
   const initialLen = db.length;
   db = db.filter(p => p.username.toLowerCase() !== username.toLowerCase());
 
@@ -562,13 +625,13 @@ app.delete('/api/profiles/:username', (req, res) => {
     return res.status(404).json({ success: false, error: `Profile ${username} not found` });
   }
 
-  writeDb(db);
+  await writeDb(db);
   res.json({ success: true, message: `Profile ${username} deleted successfully` });
 });
 
 // 7. POST sync all profiles
 app.post('/api/profiles/sync', async (req, res) => {
-  const db = readDb();
+  const db = await readDb();
   const updated = [];
   const errors = [];
 
@@ -586,7 +649,7 @@ app.post('/api/profiles/sync', async (req, res) => {
     }
   }
 
-  writeDb(db);
+  await writeDb(db);
   res.json({ success: true, updated, errors });
 });
 

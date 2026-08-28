@@ -303,6 +303,21 @@ function saveLocalProfiles(profiles) {
 
 // API Service functions
 export const api = {
+  // Admin password login
+  async loginAdmin(password) {
+    if (password === 'Nanami@1304') {
+      try {
+        await axios.post(`${API_BASE}/admin/login`, { password }, { timeout: 4000 });
+      } catch (e) {
+        // Local auth fallback
+      }
+      sessionStorage.setItem('hr_admin_auth', 'true');
+      localStorage.setItem('hr_admin_pwd', password);
+      return true;
+    }
+    throw new Error('Incorrect admin password');
+  },
+
   // Get all saved profiles
   async getProfiles() {
     try {
