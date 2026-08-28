@@ -7,6 +7,7 @@ import {
 import Navbar from './components/Navbar';
 import ProfileHero from './components/ProfileHero';
 import PeerOverviewStrip from './components/PeerOverviewStrip';
+import DashboardPeerBarGraph from './components/DashboardPeerBarGraph';
 import MetricsCards from './components/MetricsCards';
 import BadgesSection from './components/BadgesSection';
 import SubmissionHeatmap from './components/SubmissionHeatmap';
@@ -281,8 +282,8 @@ export default function App() {
         {activeTab === 'dashboard' && currentProfile && (
           <div className="space-y-6 animate-in fade-in duration-300">
             
-            {/* Top Peer Group Overview & Mini Bar Graph Strip */}
-            <PeerOverviewStrip
+            {/* Prominent Peer Comparison Bar Graph */}
+            <DashboardPeerBarGraph
               profiles={profiles}
               activeUsername={activeUsername}
               onSelectProfile={handleSelectProfile}
