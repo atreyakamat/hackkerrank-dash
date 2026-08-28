@@ -1,0 +1,1116 @@
+[
+  {
+    "username": "atkamat1204",
+    "name": "Atreya Kamat",
+    "personal_first_name": "Atreya",
+    "personal_last_name": "Kamat",
+    "avatar": "https://hrcdn.net/s3_pub/hr-avatars/cb0a8cc3-c5ff-4e3d-b118-b294ad3c5386/150x150.png",
+    "country": "India",
+    "school": "Developer Community",
+    "company": "",
+    "job_title": "Software Engineer",
+    "github_url": "https://github.com/atreyakamat",
+    "linkedin_url": "",
+    "website": "",
+    "created_at": "2023-12-24T04:44:36.000Z",
+    "level": 1,
+    "totalStars": 4,
+    "totalPoints": 188,
+    "totalSolved": 19,
+    "bestRank": 1,
+    "badges": [
+      {
+        "badge_category": "HackerBadge::Domain",
+        "badge_type": "cpp",
+        "category_name": "Language Proficiency",
+        "badge_name": "C++",
+        "badge_short_name": "CPP",
+        "total_stars": 5,
+        "total_points": 40,
+        "url": "/domains/cpp",
+        "stars": 1,
+        "level": 1,
+        "current_points": 30,
+        "progress_to_next_star": 0.67,
+        "upcoming_level": null,
+        "solved": 4,
+        "total_challenges": 44,
+        "hacker_rank": 878996
+      },
+      {
+        "badge_category": "HackerBadge::Domain",
+        "badge_type": "java",
+        "category_name": "Language Proficiency",
+        "badge_name": "Java",
+        "badge_short_name": null,
+        "total_stars": 5,
+        "total_points": 25,
+        "url": "/domains/java",
+        "stars": 0,
+        "level": 0,
+        "current_points": 3,
+        "progress_to_next_star": 0.12,
+        "upcoming_level": null,
+        "solved": 1,
+        "total_challenges": 64,
+        "hacker_rank": 2614604
+      },
+      {
+        "badge_category": "HackerBadge::Domain",
+        "badge_type": "python",
+        "category_name": "Language Proficiency",
+        "badge_name": "Python",
+        "badge_short_name": null,
+        "total_stars": 5,
+        "total_points": 220,
+        "url": "/domains/python",
+        "stars": 3,
+        "level": 2,
+        "current_points": 155,
+        "progress_to_next_star": 0.41,
+        "upcoming_level": null,
+        "solved": 14,
+        "total_challenges": 115,
+        "hacker_rank": 923406
+      }
+    ],
+    "scores": [
+      {
+        "track_id": 2,
+        "name": "Artificial Intelligence",
+        "slug": "ai",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 144340,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 3,
+        "name": "Algorithms",
+        "slug": "algorithms",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 5965194,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 5,
+        "name": "Functional Programming",
+        "slug": "fp",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 142032,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 6,
+        "name": "Linux Shell",
+        "slug": "shell",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 451135,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 12,
+        "name": "Python",
+        "slug": "python",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 155,
+          "rank": 923406,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 13,
+        "name": "C++",
+        "slug": "cpp",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 30,
+          "rank": 878996,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 14,
+        "name": "Ruby",
+        "slug": "ruby",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 106885,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 15,
+        "name": "Java",
+        "slug": "java",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 3,
+          "rank": 2614604,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 16,
+        "name": "Databases",
+        "slug": "databases",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 312606,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 17,
+        "name": "Data Structures",
+        "slug": "data-structures",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 2047154,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 18,
+        "name": "SQL",
+        "slug": "sql",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 3235891,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 19,
+        "name": "Regex",
+        "slug": "regex",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 151650,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 20,
+        "name": "Security",
+        "slug": "security",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 35446,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 21,
+        "name": "Distributed Systems",
+        "slug": "distributed-systems",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 48146,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 22,
+        "name": "Mathematics",
+        "slug": "mathematics",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 313519,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 24,
+        "name": "Tutorials",
+        "slug": "tutorials",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 2515498,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 26,
+        "name": "General Programming",
+        "slug": "general-programming",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 1,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 27,
+        "name": "C",
+        "slug": "c",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 1435555,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 31,
+        "name": "React",
+        "slug": "react",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 0,
+          "rank": 58675,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 0,
+        "name": "General",
+        "slug": "general",
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": null
+        }
+      }
+    ],
+    "activeTracks": [
+      {
+        "track_id": 12,
+        "name": "Python",
+        "slug": "python",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 155,
+          "rank": 923406,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 13,
+        "name": "C++",
+        "slug": "cpp",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 30,
+          "rank": 878996,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      },
+      {
+        "track_id": 15,
+        "name": "Java",
+        "slug": "java",
+        "practice": {
+          "hacker_id": 24234803,
+          "score": 3,
+          "rank": 2614604,
+          "location_on_leaderboard": []
+        },
+        "contest": {
+          "score": 0,
+          "rank": "N/A",
+          "level": 5,
+          "medals": {
+            "gold": 0,
+            "silver": 0,
+            "bronze": 0
+          }
+        }
+      }
+    ],
+    "certifications": [
+      {
+        "id": "cert-py-basic",
+        "title": "Python (Basic)",
+        "issuer": "HackerRank Certified",
+        "issuedDate": "2024-01-10",
+        "badgeType": "python",
+        "status": "Verified",
+        "skills": [
+          "Python Syntax",
+          "Data Types",
+          "OOP",
+          "Iterators"
+        ]
+      },
+      {
+        "id": "cert-cpp-basic",
+        "title": "C++ Certified Specialist",
+        "issuer": "HackerRank Certified",
+        "issuedDate": "2024-02-18",
+        "badgeType": "cpp",
+        "status": "Verified",
+        "skills": [
+          "STL",
+          "Pointers & Memory",
+          "OOP",
+          "Templates"
+        ]
+      },
+      {
+        "id": "cert-java-basic",
+        "title": "Java (Basic)",
+        "issuer": "HackerRank Certified",
+        "issuedDate": "2024-04-05",
+        "badgeType": "java",
+        "status": "Verified",
+        "skills": [
+          "Core Java",
+          "Collections",
+          "Exceptions",
+          "OOP"
+        ]
+      }
+    ],
+    "submissions": [
+      {
+        "name": " Java Stdin and Stdout I",
+        "ch_slug": "java-stdin-and-stdout-1",
+        "created_at": "2026-08-28T04:11:57.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/java-stdin-and-stdout-1"
+      },
+      {
+        "name": "Welcome to Java!",
+        "ch_slug": "welcome-to-java",
+        "created_at": "2026-08-28T04:11:00.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/welcome-to-java"
+      },
+      {
+        "name": "Compress the String! ",
+        "ch_slug": "compress-the-string",
+        "created_at": "2026-08-18T05:44:48.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/compress-the-string"
+      },
+      {
+        "name": "itertools.combinations_with_replacement()",
+        "ch_slug": "itertools-combinations-with-replacement",
+        "created_at": "2026-08-18T04:23:43.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/itertools-combinations-with-replacement"
+      },
+      {
+        "name": "itertools.combinations()",
+        "ch_slug": "itertools-combinations",
+        "created_at": "2026-08-18T03:54:58.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/itertools-combinations"
+      },
+      {
+        "name": "Finding the percentage",
+        "ch_slug": "finding-the-percentage",
+        "created_at": "2026-08-17T16:35:06.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/finding-the-percentage"
+      },
+      {
+        "name": "Nested Lists",
+        "ch_slug": "nested-list",
+        "created_at": "2026-08-17T16:26:36.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/nested-list"
+      },
+      {
+        "name": "Find the Runner-Up Score!  ",
+        "ch_slug": "find-second-maximum-number-in-a-list",
+        "created_at": "2026-08-14T09:31:31.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/find-second-maximum-number-in-a-list"
+      },
+      {
+        "name": "List Comprehensions",
+        "ch_slug": "list-comprehensions",
+        "created_at": "2026-08-14T09:27:10.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/list-comprehensions"
+      },
+      {
+        "name": "Print Function",
+        "ch_slug": "python-print",
+        "created_at": "2026-08-11T06:40:36.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/python-print"
+      },
+      {
+        "name": "Write a function",
+        "ch_slug": "write-a-function",
+        "created_at": "2026-08-11T05:14:19.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/write-a-function"
+      },
+      {
+        "name": "Loops",
+        "ch_slug": "python-loops",
+        "created_at": "2026-08-10T05:31:53.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/python-loops"
+      },
+      {
+        "name": "Python: Division",
+        "ch_slug": "python-division",
+        "created_at": "2026-08-10T05:19:23.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/python-division"
+      },
+      {
+        "name": "Arithmetic Operators",
+        "ch_slug": "python-arithmetic-operators",
+        "created_at": "2026-08-10T05:05:33.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/python-arithmetic-operators"
+      },
+      {
+        "name": "Python If-Else",
+        "ch_slug": "py-if-else",
+        "created_at": "2026-08-10T04:42:40.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/py-if-else"
+      },
+      {
+        "name": "Say \"Hello, World!\" With Python",
+        "ch_slug": "py-hello-world",
+        "created_at": "2026-08-10T04:37:47.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/py-hello-world"
+      },
+      {
+        "name": "For Loop",
+        "ch_slug": "c-tutorial-for-loop",
+        "created_at": "2024-11-29T02:57:53.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/c-tutorial-for-loop"
+      },
+      {
+        "name": "Conditional Statements",
+        "ch_slug": "c-tutorial-conditional-if-else",
+        "created_at": "2024-11-29T01:24:30.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/c-tutorial-conditional-if-else"
+      },
+      {
+        "name": "Basic Data Types",
+        "ch_slug": "c-tutorial-basic-data-types",
+        "created_at": "2024-11-24T14:41:26.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/c-tutorial-basic-data-types"
+      },
+      {
+        "name": "Input and Output",
+        "ch_slug": "cpp-input-and-output",
+        "created_at": "2024-11-24T14:21:43.000+00:00",
+        "con_slug": "master",
+        "url": "/challenges/cpp-input-and-output"
+      }
+    ],
+    "heatmap": {
+      "2025-08-28": 5,
+      "2025-08-29": 0,
+      "2025-08-30": 0,
+      "2025-08-31": 0,
+      "2025-09-01": 1,
+      "2025-09-02": 3,
+      "2025-09-03": 5,
+      "2025-09-04": 4,
+      "2025-09-05": 0,
+      "2025-09-06": 0,
+      "2025-09-07": 0,
+      "2025-09-08": 1,
+      "2025-09-09": 2,
+      "2025-09-10": 4,
+      "2025-09-11": 4,
+      "2025-09-12": 2,
+      "2025-09-13": 3,
+      "2025-09-14": 0,
+      "2025-09-15": 5,
+      "2025-09-16": 4,
+      "2025-09-17": 0,
+      "2025-09-18": 0,
+      "2025-09-19": 4,
+      "2025-09-20": 0,
+      "2025-09-21": 0,
+      "2025-09-22": 0,
+      "2025-09-23": 3,
+      "2025-09-24": 2,
+      "2025-09-25": 1,
+      "2025-09-26": 2,
+      "2025-09-27": 0,
+      "2025-09-28": 0,
+      "2025-09-29": 2,
+      "2025-09-30": 0,
+      "2025-10-01": 0,
+      "2025-10-02": 0,
+      "2025-10-03": 0,
+      "2025-10-04": 0,
+      "2025-10-05": 0,
+      "2025-10-06": 0,
+      "2025-10-07": 0,
+      "2025-10-08": 0,
+      "2025-10-09": 0,
+      "2025-10-10": 0,
+      "2025-10-11": 0,
+      "2025-10-12": 0,
+      "2025-10-13": 0,
+      "2025-10-14": 0,
+      "2025-10-15": 0,
+      "2025-10-16": 0,
+      "2025-10-17": 0,
+      "2025-10-18": 0,
+      "2025-10-19": 0,
+      "2025-10-20": 0,
+      "2025-10-21": 0,
+      "2025-10-22": 0,
+      "2025-10-23": 0,
+      "2025-10-24": 0,
+      "2025-10-25": 0,
+      "2025-10-26": 0,
+      "2025-10-27": 0,
+      "2025-10-28": 0,
+      "2025-10-29": 0,
+      "2025-10-30": 0,
+      "2025-10-31": 0,
+      "2025-11-01": 0,
+      "2025-11-02": 0,
+      "2025-11-03": 0,
+      "2025-11-04": 0,
+      "2025-11-05": 0,
+      "2025-11-06": 0,
+      "2025-11-07": 0,
+      "2025-11-08": 0,
+      "2025-11-09": 0,
+      "2025-11-10": 0,
+      "2025-11-11": 0,
+      "2025-11-12": 0,
+      "2025-11-13": 0,
+      "2025-11-14": 0,
+      "2025-11-15": 0,
+      "2025-11-16": 0,
+      "2025-11-17": 0,
+      "2025-11-18": 0,
+      "2025-11-19": 0,
+      "2025-11-20": 0,
+      "2025-11-21": 0,
+      "2025-11-22": 0,
+      "2025-11-23": 0,
+      "2025-11-24": 0,
+      "2025-11-25": 0,
+      "2025-11-26": 0,
+      "2025-11-27": 0,
+      "2025-11-28": 0,
+      "2025-11-29": 0,
+      "2025-11-30": 0,
+      "2025-12-01": 0,
+      "2025-12-02": 0,
+      "2025-12-03": 0,
+      "2025-12-04": 0,
+      "2025-12-05": 0,
+      "2025-12-06": 0,
+      "2025-12-07": 0,
+      "2025-12-08": 0,
+      "2025-12-09": 0,
+      "2025-12-10": 0,
+      "2025-12-11": 0,
+      "2025-12-12": 0,
+      "2025-12-13": 0,
+      "2025-12-14": 0,
+      "2025-12-15": 0,
+      "2025-12-16": 0,
+      "2025-12-17": 0,
+      "2025-12-18": 0,
+      "2025-12-19": 0,
+      "2025-12-20": 0,
+      "2025-12-21": 0,
+      "2025-12-22": 0,
+      "2025-12-23": 0,
+      "2025-12-24": 0,
+      "2025-12-25": 0,
+      "2025-12-26": 0,
+      "2025-12-27": 0,
+      "2025-12-28": 0,
+      "2025-12-29": 0,
+      "2025-12-30": 0,
+      "2025-12-31": 0,
+      "2026-01-01": 0,
+      "2026-01-02": 0,
+      "2026-01-03": 0,
+      "2026-01-04": 0,
+      "2026-01-05": 0,
+      "2026-01-06": 0,
+      "2026-01-07": 0,
+      "2026-01-08": 0,
+      "2026-01-09": 0,
+      "2026-01-10": 0,
+      "2026-01-11": 0,
+      "2026-01-12": 0,
+      "2026-01-13": 0,
+      "2026-01-14": 0,
+      "2026-01-15": 0,
+      "2026-01-16": 0,
+      "2026-01-17": 0,
+      "2026-01-18": 0,
+      "2026-01-19": 0,
+      "2026-01-20": 0,
+      "2026-01-21": 0,
+      "2026-01-22": 0,
+      "2026-01-23": 0,
+      "2026-01-24": 0,
+      "2026-01-25": 0,
+      "2026-01-26": 0,
+      "2026-01-27": 0,
+      "2026-01-28": 0,
+      "2026-01-29": 0,
+      "2026-01-30": 0,
+      "2026-01-31": 0,
+      "2026-02-01": 0,
+      "2026-02-02": 0,
+      "2026-02-03": 0,
+      "2026-02-04": 0,
+      "2026-02-05": 0,
+      "2026-02-06": 0,
+      "2026-02-07": 0,
+      "2026-02-08": 0,
+      "2026-02-09": 0,
+      "2026-02-10": 0,
+      "2026-02-11": 0,
+      "2026-02-12": 0,
+      "2026-02-13": 0,
+      "2026-02-14": 0,
+      "2026-02-15": 0,
+      "2026-02-16": 0,
+      "2026-02-17": 0,
+      "2026-02-18": 0,
+      "2026-02-19": 0,
+      "2026-02-20": 0,
+      "2026-02-21": 0,
+      "2026-02-22": 0,
+      "2026-02-23": 0,
+      "2026-02-24": 0,
+      "2026-02-25": 0,
+      "2026-02-26": 0,
+      "2026-02-27": 0,
+      "2026-02-28": 0,
+      "2026-03-01": 0,
+      "2026-03-02": 0,
+      "2026-03-03": 0,
+      "2026-03-04": 0,
+      "2026-03-05": 0,
+      "2026-03-06": 0,
+      "2026-03-07": 0,
+      "2026-03-08": 0,
+      "2026-03-09": 0,
+      "2026-03-10": 0,
+      "2026-03-11": 0,
+      "2026-03-12": 0,
+      "2026-03-13": 0,
+      "2026-03-14": 0,
+      "2026-03-15": 0,
+      "2026-03-16": 0,
+      "2026-03-17": 0,
+      "2026-03-18": 0,
+      "2026-03-19": 0,
+      "2026-03-20": 0,
+      "2026-03-21": 0,
+      "2026-03-22": 0,
+      "2026-03-23": 0,
+      "2026-03-24": 0,
+      "2026-03-25": 0,
+      "2026-03-26": 0,
+      "2026-03-27": 0,
+      "2026-03-28": 0,
+      "2026-03-29": 0,
+      "2026-03-30": 0,
+      "2026-03-31": 0,
+      "2026-04-01": 0,
+      "2026-04-02": 0,
+      "2026-04-03": 0,
+      "2026-04-04": 0,
+      "2026-04-05": 0,
+      "2026-04-06": 0,
+      "2026-04-07": 0,
+      "2026-04-08": 0,
+      "2026-04-09": 0,
+      "2026-04-10": 0,
+      "2026-04-11": 0,
+      "2026-04-12": 0,
+      "2026-04-13": 0,
+      "2026-04-14": 0,
+      "2026-04-15": 0,
+      "2026-04-16": 0,
+      "2026-04-17": 0,
+      "2026-04-18": 0,
+      "2026-04-19": 0,
+      "2026-04-20": 0,
+      "2026-04-21": 0,
+      "2026-04-22": 0,
+      "2026-04-23": 0,
+      "2026-04-24": 0,
+      "2026-04-25": 0,
+      "2026-04-26": 0,
+      "2026-04-27": 0,
+      "2026-04-28": 0,
+      "2026-04-29": 0,
+      "2026-04-30": 0,
+      "2026-05-01": 0,
+      "2026-05-02": 0,
+      "2026-05-03": 0,
+      "2026-05-04": 0,
+      "2026-05-05": 0,
+      "2026-05-06": 0,
+      "2026-05-07": 0,
+      "2026-05-08": 0,
+      "2026-05-09": 0,
+      "2026-05-10": 0,
+      "2026-05-11": 0,
+      "2026-05-12": 0,
+      "2026-05-13": 0,
+      "2026-05-14": 0,
+      "2026-05-15": 0,
+      "2026-05-16": 0,
+      "2026-05-17": 0,
+      "2026-05-18": 0,
+      "2026-05-19": 0,
+      "2026-05-20": 0,
+      "2026-05-21": 0,
+      "2026-05-22": 0,
+      "2026-05-23": 0,
+      "2026-05-24": 0,
+      "2026-05-25": 0,
+      "2026-05-26": 0,
+      "2026-05-27": 0,
+      "2026-05-28": 0,
+      "2026-05-29": 0,
+      "2026-05-30": 0,
+      "2026-05-31": 0,
+      "2026-06-01": 0,
+      "2026-06-02": 0,
+      "2026-06-03": 0,
+      "2026-06-04": 0,
+      "2026-06-05": 0,
+      "2026-06-06": 0,
+      "2026-06-07": 0,
+      "2026-06-08": 0,
+      "2026-06-09": 0,
+      "2026-06-10": 0,
+      "2026-06-11": 0,
+      "2026-06-12": 0,
+      "2026-06-13": 0,
+      "2026-06-14": 0,
+      "2026-06-15": 0,
+      "2026-06-16": 0,
+      "2026-06-17": 0,
+      "2026-06-18": 0,
+      "2026-06-19": 0,
+      "2026-06-20": 0,
+      "2026-06-21": 0,
+      "2026-06-22": 0,
+      "2026-06-23": 0,
+      "2026-06-24": 0,
+      "2026-06-25": 0,
+      "2026-06-26": 0,
+      "2026-06-27": 0,
+      "2026-06-28": 0,
+      "2026-06-29": 0,
+      "2026-06-30": 0,
+      "2026-07-01": 0,
+      "2026-07-02": 0,
+      "2026-07-03": 0,
+      "2026-07-04": 0,
+      "2026-07-05": 0,
+      "2026-07-06": 0,
+      "2026-07-07": 0,
+      "2026-07-08": 0,
+      "2026-07-09": 0,
+      "2026-07-10": 0,
+      "2026-07-11": 0,
+      "2026-07-12": 0,
+      "2026-07-13": 0,
+      "2026-07-14": 0,
+      "2026-07-15": 0,
+      "2026-07-16": 0,
+      "2026-07-17": 0,
+      "2026-07-18": 0,
+      "2026-07-19": 0,
+      "2026-07-20": 0,
+      "2026-07-21": 0,
+      "2026-07-22": 0,
+      "2026-07-23": 0,
+      "2026-07-24": 0,
+      "2026-07-25": 0,
+      "2026-07-26": 0,
+      "2026-07-27": 0,
+      "2026-07-28": 0,
+      "2026-07-29": 0,
+      "2026-07-30": 0,
+      "2026-07-31": 0,
+      "2026-08-01": 0,
+      "2026-08-02": 0,
+      "2026-08-03": 0,
+      "2026-08-04": 0,
+      "2026-08-05": 0,
+      "2026-08-06": 0,
+      "2026-08-07": 0,
+      "2026-08-08": 0,
+      "2026-08-09": 0,
+      "2026-08-10": 0,
+      "2026-08-11": 0,
+      "2026-08-12": 0,
+      "2026-08-13": 0,
+      "2026-08-14": 0,
+      "2026-08-15": 0,
+      "2026-08-16": 0,
+      "2026-08-17": 0,
+      "2026-08-18": 0,
+      "2026-08-19": 0,
+      "2026-08-20": 0,
+      "2026-08-21": 0,
+      "2026-08-22": 0,
+      "2026-08-23": 0,
+      "2026-08-24": 0,
+      "2026-08-25": 0,
+      "2026-08-26": 0,
+      "2026-08-27": 0,
+      "2026-08-28": 0
+    },
+    "lastSynced": "2026-08-28T04:23:23.386Z",
+    "customMeta": {
+      "department": "Engineering",
+      "batch": "2024-2025",
+      "status": "Active",
+      "notes": "HackerRank Profile Verified"
+    }
+  }
+]
