@@ -12,6 +12,8 @@ import SubmissionHeatmap from './components/SubmissionHeatmap';
 import SkillsTrackSection from './components/SkillsTrackSection';
 import RecentSubmissions from './components/RecentSubmissions';
 import CertificationsSection from './components/CertificationsSection';
+import PeerAnalyticsGraphs from './components/PeerAnalyticsGraphs';
+import IndividualProfileGraphs from './components/IndividualProfileGraphs';
 import AdminPanel from './components/AdminPanel';
 import LeaderboardView from './components/LeaderboardView';
 import ComparisonView from './components/ComparisonView';
@@ -26,14 +28,21 @@ import {
   ShieldCheck, 
   Sparkles, 
   ExternalLink,
-  Plus
+  Plus,
+  BarChart3,
+  Share2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function App() {
+  // Read initial query params from URL
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialPeer = searchParams.get('peer') || 'atkamat1204';
+  const initialTab = searchParams.get('tab') || 'dashboard';
+
   const [profiles, setProfiles] = useState(DEFAULT_PROFILES);
-  const [activeUsername, setActiveUsername] = useState('atkamat1204');
-  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, leaderboard, compare, admin
+  const [activeUsername, setActiveUsername] = useState(initialPeer);
+  const [activeTab, setActiveTab] = useState(initialTab); // dashboard, analytics, leaderboard, compare, admin
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -42,8 +51,18 @@ export default function App() {
   const [editProfileData, setEditProfileData] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [quickAddInput, setQuickAddInput] = useState('');
-  const [quickAddBatch, setQuickAddBatch] = useState('Batch 2025');
+  const [quickAddBatch, setQuickAddBatch] = useState('Core Group');
   const [isQuickAdding, setIsQuickAdding] = useState(false);
+
+  // Sync URL search params when activeUsername or activeTab changes
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', activeTab);
+    if (activeUsername) {
+      url.searchParams.set('peer', activeUsername);
+    }
+    window.history.replaceState({}, '', url.toString());
+  }, [activeTab, activeUsername]);
 
   // Initial load
   useEffect(() => {
@@ -57,10 +76,17 @@ export default function App() {
       const data = await api.getProfiles();
       if (Array.isArray(data) && data.length > 0) {
         setProfiles(data);
-        // Ensure default active user exists in data
+        
+        // If initialPeer is specified from URL, try to select or load it
         const exists = data.find(p => p.username.toLowerCase() === activeUsername.toLowerCase());
-        if (!exists && data[0]) {
-          setActiveUsername(data[0].username);
+        if (!exists && initialPeer) {
+          try {
+            const fetched = await api.getProfile(initialPeer);
+            setProfiles(prev => [fetched, ...prev]);
+            setActiveUsername(fetched.username);
+          } catch {
+            if (data[0]) setActiveUsername(data[0].username);
+          }
         }
       }
     } catch (e) {
@@ -164,7 +190,7 @@ export default function App() {
       const added = await handleAddProfile(quickAddInput.trim(), {
         batch: quickAddBatch,
         status: 'Active',
-        notes: 'Added from Quick Add'
+        notes: 'Added to peer tracking list'
       });
       setShowAddModal(false);
       setQuickAddInput('');
@@ -185,7 +211,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0E141E] text-slate-100 flex flex-col selection:bg-[#2EC866]/30 selection:text-[#00EA64]">
       
-      {/* Top Navigation Bar */}
+      {/* Top Navigation Bar with deep-link sharing */}
       <Navbar
         currentProfile={currentProfile}
         profiles={profiles}
@@ -200,15 +226,15 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         
-        {/* Loading Spinner during initial fetch */}
+        {/* Loading status */}
         {isLoading && (
-          <div className="flex items-center justify-center p-8 text-[#00EA64] font-mono text-xs gap-2">
+          <div className="flex items-center justify-center p-6 text-[#00EA64] font-mono text-xs gap-2">
             <RefreshCw className="w-4 h-4 animate-spin" />
-            <span>Synchronizing HackerRank Profile Data...</span>
+            <span>Synchronizing Peer Profiles from HackerRank...</span>
           </div>
         )}
 
-        {/* TAB 1: Candidate Dashboard */}
+        {/* TAB 1: Individual Peer Dashboard with Profile Graphs */}
         {activeTab === 'dashboard' && currentProfile && (
           <div className="space-y-6 animate-in fade-in duration-300">
             
@@ -218,10 +244,13 @@ export default function App() {
               onEditClick={(p) => setEditProfileData(p)}
             />
 
-            {/* Key Metrics Bar */}
+            {/* Key Metrics Overview Bar */}
             <MetricsCards profile={currentProfile} />
 
-            {/* Badges & Stars Section */}
+            {/* Individual Profile Visual Graphs */}
+            <IndividualProfileGraphs profile={currentProfile} />
+
+            {/* Badges & Stars Showcase */}
             <BadgesSection
               badges={currentProfile.badges}
               username={currentProfile.username}
@@ -233,10 +262,9 @@ export default function App() {
               submissions={currentProfile.submissions}
             />
 
-            {/* Two-Column Layout: Skills Breakdown & Certifications */}
+            {/* Two-Column Layout: Skills Domain Breakdown & Certifications */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
-              {/* Left 7 cols: Skills Track Breakdown */}
               <div className="lg:col-span-7 space-y-6">
                 <SkillsTrackSection
                   scores={currentProfile.scores}
@@ -245,7 +273,6 @@ export default function App() {
                 />
               </div>
 
-              {/* Right 5 cols: HackerRank Certifications */}
               <div className="lg:col-span-5 space-y-6">
                 <CertificationsSection
                   certifications={currentProfile.certifications}
@@ -255,7 +282,7 @@ export default function App() {
 
             </div>
 
-            {/* Recently Solved Coding Submissions List */}
+            {/* Recently Solved Coding Submissions */}
             <RecentSubmissions
               submissions={currentProfile.submissions}
               username={currentProfile.username}
@@ -264,7 +291,16 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 2: Leaderboard & Cohort Analytics */}
+        {/* TAB 2: Multi-Peer Comparative Bar Graphs */}
+        {activeTab === 'analytics' && (
+          <PeerAnalyticsGraphs
+            profiles={profiles}
+            onSelectProfile={handleSelectProfile}
+            activeUsername={activeUsername}
+          />
+        )}
+
+        {/* TAB 3: Peer Group Leaderboard */}
         {activeTab === 'leaderboard' && (
           <LeaderboardView
             profiles={profiles}
@@ -272,7 +308,7 @@ export default function App() {
           />
         )}
 
-        {/* TAB 3: Side-by-Side Comparison */}
+        {/* TAB 4: Side-by-Side Peer Comparison */}
         {activeTab === 'compare' && (
           <ComparisonView
             profiles={profiles}
@@ -281,7 +317,7 @@ export default function App() {
           />
         )}
 
-        {/* TAB 4: Admin Management Panel */}
+        {/* TAB 5: Admin Hub (Add Peer Profiles & Manage) */}
         {activeTab === 'admin' && (
           <AdminPanel
             profiles={profiles}
@@ -303,12 +339,12 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="text-[#00EA64] font-black">[H]</span>
-            <span className="text-slate-300 font-semibold">HackerRank Dashboard System</span>
+            <span className="text-slate-300 font-semibold">HackerRank Peer Tracker Hub</span>
           </div>
           <div className="flex items-center gap-4 text-[11px] text-slate-400">
-            <span>Responsive Dark Theme</span>
+            <span>Shareable Public Links</span>
             <span>•</span>
-            <span>REST API Live Proxy</span>
+            <span>Comparative Bar Graphs</span>
             <span>•</span>
             <a
               href="https://www.hackerrank.com"
@@ -348,15 +384,15 @@ export default function App() {
                 <Plus className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">Add HackerRank Profile</h3>
-                <p className="text-xs text-slate-400">Fetch live public statistics directly</p>
+                <h3 className="text-lg font-bold text-white">Add Peer Profile</h3>
+                <p className="text-xs text-slate-400">Add friends or classmates to your tracking hub</p>
               </div>
             </div>
 
             <form onSubmit={handleQuickAddSubmit} className="mt-4 space-y-3.5">
               <div>
                 <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1">
-                  Username or Profile URL *
+                  Peer Username or Profile URL *
                 </label>
                 <input
                   type="text"
@@ -371,7 +407,7 @@ export default function App() {
 
               <div>
                 <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1">
-                  Batch Tag
+                  Group / Tag
                 </label>
                 <input
                   type="text"
@@ -400,7 +436,7 @@ export default function App() {
                       <span>Fetching...</span>
                     </>
                   ) : (
-                    <span>Add Profile</span>
+                    <span>Add Peer</span>
                   )}
                 </button>
               </div>

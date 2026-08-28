@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { 
-  Terminal, 
   Users, 
   Trophy, 
   GitCompare, 
-  Settings, 
+  ShieldCheck, 
   RefreshCw, 
   ExternalLink, 
   Search, 
@@ -13,9 +12,12 @@ import {
   X,
   Code2,
   Sparkles,
-  ShieldCheck,
-  Award
+  BarChart3,
+  Share2,
+  Check,
+  UserPlus
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 export default function Navbar({ 
   currentProfile, 
@@ -30,6 +32,7 @@ export default function Navbar({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const filteredProfiles = profiles.filter(p => 
     p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -38,11 +41,34 @@ export default function Navbar({
   );
 
   const tabs = [
-    { id: 'dashboard', label: 'Candidate Dashboard', icon: Code2 },
-    { id: 'leaderboard', label: 'Leaderboard & Cohort', icon: Trophy },
-    { id: 'compare', label: 'Side-by-Side Compare', icon: GitCompare },
-    { id: 'admin', label: 'Admin Management', icon: ShieldCheck, badge: profiles.length }
+    { id: 'dashboard', label: 'Peer Dashboard', icon: Code2 },
+    { id: 'analytics', label: 'Peer Bar Graphs', icon: BarChart3 },
+    { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
+    { id: 'compare', label: 'Compare Peers', icon: GitCompare },
+    { id: 'admin', label: 'Admin Hub (Add Peers)', icon: ShieldCheck, badge: profiles.length }
   ];
+
+  // Handle Share Tracker Link
+  const handleShareLink = () => {
+    const url = new URL(window.location.href);
+    if (activeTab === 'dashboard' && currentProfile) {
+      url.searchParams.set('peer', currentProfile.username);
+      url.searchParams.set('tab', 'dashboard');
+    } else {
+      url.searchParams.set('tab', activeTab);
+      if (currentProfile) url.searchParams.set('peer', currentProfile.username);
+    }
+
+    navigator.clipboard.writeText(url.toString());
+    setCopiedLink(true);
+    confetti({
+      particleCount: 30,
+      spread: 60,
+      origin: { y: 0.1 },
+      colors: ['#2EC866', '#00EA64']
+    });
+    setTimeout(() => setCopiedLink(false), 2200);
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-[#0E141E]/95 backdrop-blur-md border-b border-[#263545] shadow-lg">
@@ -64,10 +90,10 @@ export default function Navbar({
                     HACKER<span className="text-[#00EA64]">RANK</span>
                   </span>
                   <span className="bg-[#2EC866]/15 text-[#00EA64] border border-[#2EC866]/30 text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold">
-                    DASH
+                    PEER HUB
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400 font-medium">Candidate & Cohort Intelligence</p>
+                <p className="text-[11px] text-slate-400 font-medium">Coding & Progress Tracker</p>
               </div>
             </button>
           </div>
@@ -81,7 +107,7 @@ export default function Navbar({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     isActive
                       ? 'bg-[#2EC866] text-black shadow-md shadow-[#2EC866]/20 font-bold'
                       : 'text-slate-300 hover:text-white hover:bg-[#1E2A38]'
@@ -101,10 +127,29 @@ export default function Navbar({
             })}
           </nav>
 
-          {/* Right Action Section: Profile Switcher & Sync */}
-          <div className="flex items-center gap-2.5">
+          {/* Right Action Section: Peer Switcher, Share Link, Sync */}
+          <div className="flex items-center gap-2">
             
-            {/* Quick Profile Selector Dropdown */}
+            {/* Share Tracker Link Button */}
+            <button
+              onClick={handleShareLink}
+              title="Copy shareable tracker link with current peer/view"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#151F2C] hover:bg-[#1E2A38] border border-[#263545] hover:border-[#2EC866]/50 rounded-xl text-xs font-semibold text-slate-200 hover:text-[#00EA64] transition-all"
+            >
+              {copiedLink ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-[#00EA64]" />
+                  <span className="text-[#00EA64]">Link Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Share Link</span>
+                </>
+              )}
+            </button>
+
+            {/* Peer Selector Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -119,7 +164,7 @@ export default function Navbar({
                       onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${currentProfile.username}`; }}
                     />
                     <div className="hidden md:block">
-                      <p className="text-xs font-semibold text-white leading-none truncate max-w-[110px]">
+                      <p className="text-xs font-semibold text-white leading-none truncate max-w-[100px]">
                         {currentProfile.name || currentProfile.username}
                       </p>
                       <p className="text-[10px] font-mono text-[#00EA64] leading-none mt-0.5">
@@ -128,7 +173,7 @@ export default function Navbar({
                     </div>
                   </div>
                 ) : (
-                  <span className="text-xs text-slate-400">Select Profile</span>
+                  <span className="text-xs text-slate-400">Select Peer</span>
                 )}
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-1" />
               </button>
@@ -138,13 +183,13 @@ export default function Navbar({
                 <div className="absolute right-0 mt-2 w-72 bg-[#151F2C] border border-[#263545] rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <div className="px-3 pb-2 border-b border-[#263545]">
                     <p className="text-[11px] font-bold uppercase text-slate-400 font-mono tracking-wider mb-1.5">
-                      Switch Candidate Profile
+                      Select Peer Profile
                     </p>
                     <div className="relative">
                       <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
                       <input
                         type="text"
-                        placeholder="Search candidates..."
+                        placeholder="Search peers..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full bg-[#0E141E] border border-[#263545] rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#2EC866]"
@@ -198,7 +243,8 @@ export default function Navbar({
                       }}
                       className="w-full py-1.5 px-3 bg-[#2EC866] hover:bg-[#24a152] text-black font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5"
                     >
-                      <span>+ Add New Profile</span>
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Add Peer Profile</span>
                     </button>
                   </div>
                 </div>
@@ -217,7 +263,7 @@ export default function Navbar({
               </button>
             )}
 
-            {/* View Profile on HackerRank External Link */}
+            {/* Direct HackerRank Link */}
             {currentProfile && (
               <a
                 href={`https://www.hackerrank.com/profile/${currentProfile.username}`}
@@ -226,7 +272,7 @@ export default function Navbar({
                 title={`Open @${currentProfile.username} on HackerRank`}
                 className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#151F2C] hover:bg-[#1E2A38] border border-[#263545] hover:border-[#2EC866]/60 rounded-xl text-xs font-semibold text-slate-200 hover:text-[#00EA64] transition-all"
               >
-                <span>HackerRank</span>
+                <span>Profile</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
@@ -284,7 +330,7 @@ export default function Navbar({
                 }}
                 className="w-full py-2 bg-[#2EC866] text-black font-bold text-sm rounded-lg flex items-center justify-center gap-2"
               >
-                + Add Profile / Username
+                + Add Peer Profile
               </button>
             </div>
           </div>
