@@ -5,6 +5,13 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { getStore } from '@netlify/blobs';
+import { 
+  getSupabaseProfiles, 
+  upsertSupabaseProfile, 
+  deleteSupabaseProfile, 
+  isSupabaseConfigured, 
+  migrateLocalDataToSupabase 
+} from './supabase.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,7 +22,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Netlify Blobs store accessor for persistent cloud storage with strong consistency
+// Netlify Blobs store accessor
 function getNetlifyBlobStore() {
   try {
     return getStore({ name: 'hackerrank_profiles', consistency: 'strong' });
@@ -28,7 +35,7 @@ function getNetlifyBlobStore() {
   }
 }
 
-// Clean username extraction from raw input or URL (e.g. https://www.hackerrank.com/profile/atkamat1204 or https://www.hackerrank.com/atkamat1204)
+// Clean username extraction from raw input or URL
 export function sanitizeUsername(input) {
   if (!input) return '';
   let cleaned = input.trim();
@@ -65,7 +72,6 @@ export function calculateStars(slug, points) {
     if (points >= 10) return 1;
     return 0;
   }
-  // Standard languages and tracks (Python, C++, Java, SQL, C, etc.)
   if (points >= 500) return 5;
   if (points >= 250) return 4;
   if (points >= 110) return 3;
@@ -103,13 +109,33 @@ function getBundledBaselineProfiles() {
 // In-memory cache to guarantee ultra-fast responses across lambda invocations
 let memoryProfilesCache = null;
 
-// Database helper functions with Netlify Blobs + local file persistence
+// Database helper functions with Supabase PostgreSQL + Netlify Blobs + local file persistence
 export async function readDb() {
   if (memoryProfilesCache && Array.isArray(memoryProfilesCache) && memoryProfilesCache.length > 0) {
     return memoryProfilesCache;
   }
 
-  // 1. Try Netlify Blobs first (cloud persistent storage on Netlify)
+  // 1. Try Supabase PostgreSQL if configured
+  if (isSupabaseConfigured()) {
+    try {
+      const supabaseProfiles = await getSupabaseProfiles();
+      if (Array.isArray(supabaseProfiles) && supabaseProfiles.length > 0) {
+        memoryProfilesCache = supabaseProfiles;
+        return supabaseProfiles;
+      }
+      // If Supabase table is empty, seed from bundled baseline
+      const baseline = getBundledBaselineProfiles();
+      if (baseline.length > 0) {
+        await migrateLocalDataToSupabase(baseline);
+        memoryProfilesCache = baseline;
+        return baseline;
+      }
+    } catch (e) {
+      console.warn('[STORAGE] Supabase read exception:', e.message);
+    }
+  }
+
+  // 2. Try Netlify Blobs (cloud persistent storage on Netlify)
   const store = getNetlifyBlobStore();
   if (store) {
     try {
@@ -123,17 +149,16 @@ export async function readDb() {
     }
   }
 
-  // 2. Fallback to Bundled Baseline profiles.json (packaged with repository)
+  // 3. Fallback to Bundled Baseline profiles.json (packaged with repository)
   const baseline = getBundledBaselineProfiles();
   if (baseline.length > 0) {
     memoryProfilesCache = baseline;
-    // Auto-seed Netlify Blobs so all subsequent Lambda instances and user updates persist
     if (store) {
       try {
         await store.setJSON('profiles_list', baseline);
-        console.log(`[STORAGE] Successfully initialized Netlify Blobs with ${baseline.length} baseline profiles.`);
+        console.log(`[STORAGE] Initialized Netlify Blobs with ${baseline.length} baseline profiles.`);
       } catch (e) {
-        console.warn('[STORAGE] Could not seed Netlify Blobs:', e.message);
+        // ignore
       }
     }
     return baseline;
@@ -145,25 +170,33 @@ export async function readDb() {
 export async function writeDb(data) {
   memoryProfilesCache = data;
 
-  // 1. Save to Netlify Blobs for persistent Netlify cloud deployment
+  // 1. Save to Supabase PostgreSQL if configured
+  if (isSupabaseConfigured()) {
+    try {
+      await migrateLocalDataToSupabase(data);
+    } catch (e) {
+      console.warn('[STORAGE] Supabase write error:', e.message);
+    }
+  }
+
+  // 2. Save to Netlify Blobs for persistent Netlify cloud deployment
   const store = getNetlifyBlobStore();
   if (store) {
     try {
       await store.setJSON('profiles_list', data);
-      console.log(`[STORAGE] Persisted ${data.length} profiles to Netlify Blobs.`);
     } catch (e) {
       console.warn('[STORAGE] Netlify Blobs write error:', e.message);
     }
   }
 
-  // 2. Save to /tmp/profiles.json (ephemeral Lambda session cache)
+  // 3. Save to /tmp/profiles.json (ephemeral Lambda session cache)
   try {
     fs.writeFileSync('/tmp/profiles.json', JSON.stringify(data, null, 2), 'utf-8');
   } catch (e) {
     // ignore
   }
 
-  // 3. Save to local disk if writable
+  // 4. Save to local disk if writable
   const localDb = path.join(process.cwd(), 'data/profiles.json');
   try {
     if (!fs.existsSync(path.dirname(localDb))) {
@@ -322,6 +355,10 @@ export async function syncMember(username, existingProfile = null) {
     fresh.lastSyncStatus = 'success';
     fresh.lastSyncError = null;
 
+    if (isSupabaseConfigured()) {
+      await upsertSupabaseProfile(fresh);
+    }
+
     return { profile: fresh, error: null };
   } catch (err) {
     console.warn(`[SYNC] @${cleanUser} sync failed: ${err.message}`);
@@ -329,6 +366,9 @@ export async function syncMember(username, existingProfile = null) {
       existingProfile.lastSyncedAt = now;
       existingProfile.lastSyncStatus = 'failed';
       existingProfile.lastSyncError = err.message;
+      if (isSupabaseConfigured()) {
+        await upsertSupabaseProfile(existingProfile);
+      }
       return { profile: existingProfile, error: err.message };
     }
     throw err;
@@ -611,6 +651,10 @@ app.delete('/api/profiles/:username', requireAdminAuth, async (req, res) => {
 
   if (db.length === initialLen) {
     return res.status(404).json({ success: false, error: `Profile @${username} not found` });
+  }
+
+  if (isSupabaseConfigured()) {
+    await deleteSupabaseProfile(username);
   }
 
   await writeDb(db);

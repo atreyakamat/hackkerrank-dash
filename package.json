@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@netlify/blobs": "^11.0.2",
+    "@supabase/supabase-js": "^2.112.4",
     "axios": "^1.7.9",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
