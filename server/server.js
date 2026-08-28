@@ -7,9 +7,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { 
   getSupabaseProfiles, 
-  getSupabaseProfile,
+  getSupabaseProfile, 
   upsertSupabaseProfile, 
-  updateSupabaseProfileMeta,
+  updateSupabaseProfileMeta, 
   deleteSupabaseProfile, 
   isSupabaseConfigured, 
   migrateLocalDataToSupabase 
@@ -149,14 +149,14 @@ export async function writeDb(data) {
   }
 
   // 2. Local reference file if writable
-  const localDb = path.join(process.cwd(), 'data/profiles.json');
   try {
+    const localDb = path.join(process.cwd(), 'data/profiles.json');
     if (!fs.existsSync(path.dirname(localDb))) {
       fs.mkdirSync(path.dirname(localDb), { recursive: true });
     }
     fs.writeFileSync(localDb, JSON.stringify(data, null, 2), 'utf-8');
   } catch (e) {
-    // ignore on read-only environments
+    // ignore on read-only environments (e.g. Lambda)
   }
 }
 
@@ -377,7 +377,7 @@ export async function autoSyncProfiles() {
 }
 
 // Run 10-minute auto-sync timer in local development
-if (!process.env.NETLIFY) {
+if (!process.env.NETLIFY && !process.env.AWS_LAMBDA_FUNCTION_NAME && !process.env.LAMBDA_TASK_ROOT) {
   setInterval(autoSyncProfiles, 10 * 60 * 1000);
 }
 
@@ -399,10 +399,11 @@ export function requireAdminAuth(req, res, next) {
   return res.status(401).json({ success: false, error: 'Unauthorized: Admin authentication required.' });
 }
 
-// ----------------- API ROUTE DEFINITIONS -----------------
+// ----------------- API ROUTER DEFINITIONS -----------------
+const apiRouter = express.Router();
 
 // 0. Admin Login & Verification Endpoint
-app.post('/api/admin/login', (req, res) => {
+apiRouter.post('/admin/login', (req, res) => {
   const { password } = req.body;
   if (password === ADMIN_PASSWORD) {
     res.json({ success: true, message: 'Admin authenticated successfully', token: ADMIN_TOKEN });
@@ -412,7 +413,7 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // 1. GET all profiles (Publicly accessible - reads directly from Supabase)
-app.get('/api/profiles', async (req, res) => {
+apiRouter.get('/profiles', async (req, res) => {
   const profiles = await readDb();
   res.json({ 
     success: true, 
@@ -423,7 +424,7 @@ app.get('/api/profiles', async (req, res) => {
 });
 
 // 2. GET a single profile by username
-app.get('/api/profile/:username', async (req, res) => {
+apiRouter.get('/profile/:username', async (req, res) => {
   const rawUser = req.params.username;
   const username = sanitizeUsername(rawUser);
 
@@ -461,7 +462,7 @@ app.get('/api/profile/:username', async (req, res) => {
 });
 
 // 3. POST add new profile & persist to Supabase (Admin protected)
-app.post('/api/profiles', requireAdminAuth, async (req, res) => {
+apiRouter.post('/profiles', requireAdminAuth, async (req, res) => {
   const { username: rawInput, customMeta } = req.body;
   if (!rawInput) {
     return res.status(400).json({ success: false, error: 'Username or profile URL is required' });
@@ -494,7 +495,7 @@ app.post('/api/profiles', requireAdminAuth, async (req, res) => {
 });
 
 // 4. POST batch add profiles & persist to Supabase (Admin protected)
-app.post('/api/profiles/batch', requireAdminAuth, async (req, res) => {
+apiRouter.post('/profiles/batch', requireAdminAuth, async (req, res) => {
   const { inputs } = req.body;
   if (!inputs) {
     return res.status(400).json({ success: false, error: 'Inputs array or string required' });
@@ -536,7 +537,7 @@ app.post('/api/profiles/batch', requireAdminAuth, async (req, res) => {
 });
 
 // 5. POST sync a single profile manually (Admin protected)
-app.post('/api/profiles/:username/sync', requireAdminAuth, async (req, res) => {
+apiRouter.post('/profiles/:username/sync', requireAdminAuth, async (req, res) => {
   const username = sanitizeUsername(req.params.username);
   const db = await readDb();
   const idx = db.findIndex(p => p.username.toLowerCase() === username.toLowerCase());
@@ -560,7 +561,7 @@ app.post('/api/profiles/:username/sync', requireAdminAuth, async (req, res) => {
 });
 
 // 6. POST sync all profiles manually (Admin protected)
-app.post('/api/profiles/sync', requireAdminAuth, async (req, res) => {
+apiRouter.post('/profiles/sync', requireAdminAuth, async (req, res) => {
   const db = await readDb();
   const updated = [];
   const errors = [];
@@ -586,7 +587,7 @@ app.post('/api/profiles/sync', requireAdminAuth, async (req, res) => {
 });
 
 // 7. PATCH update custom metadata in Supabase (Admin protected)
-app.patch('/api/profiles/:username', requireAdminAuth, async (req, res) => {
+apiRouter.patch('/profiles/:username', requireAdminAuth, async (req, res) => {
   const username = sanitizeUsername(req.params.username);
   const { customMeta, name, country, school, job_title } = req.body;
   const db = await readDb();
@@ -613,7 +614,7 @@ app.patch('/api/profiles/:username', requireAdminAuth, async (req, res) => {
 });
 
 // 8. DELETE profile from Supabase & state (Admin protected)
-app.delete('/api/profiles/:username', requireAdminAuth, async (req, res) => {
+apiRouter.delete('/profiles/:username', requireAdminAuth, async (req, res) => {
   const username = sanitizeUsername(req.params.username);
   let db = await readDb();
   const initialLen = db.length;
@@ -631,17 +632,23 @@ app.delete('/api/profiles/:username', requireAdminAuth, async (req, res) => {
   res.json({ success: true, message: `Profile @${username} removed from tracking` });
 });
 
+// Mount the API router across all path variations
+app.use('/.netlify/functions/api', apiRouter);
+app.use('/api', apiRouter);
+app.use('/', apiRouter);
+
 // Serve static production build if available
 const DIST_DIR = path.join(__dirname, '../dist');
 if (fs.existsSync(DIST_DIR)) {
   app.use(express.static(DIST_DIR));
   app.use((req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
+    if (req.path.startsWith('/api') || req.path.startsWith('/.netlify')) return next();
     res.sendFile(path.join(DIST_DIR, 'index.html'));
   });
 }
 
-if (!process.env.NETLIFY && process.env.NODE_ENV !== 'test') {
+// Only start standalone HTTP server when not running in serverless Lambda runtime
+if (!process.env.NETLIFY && !process.env.AWS_LAMBDA_FUNCTION_NAME && !process.env.LAMBDA_TASK_ROOT && process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`[SERVER] HackerRank Analytics Server running on port ${PORT}`);
   });
