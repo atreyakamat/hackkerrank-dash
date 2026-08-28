@@ -61,26 +61,6 @@ export function validateHackerRankInput(input) {
   return { isValid: true, isUrl: false, sanitizedUsername: clean };
 }
 
-const LOCAL_STORAGE_KEY = 'hr_dashboard_profiles_v1';
-
-function getLocalProfiles() {
-  try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {
-    // ignore
-  }
-  return [];
-}
-
-function saveLocalProfiles(profiles) {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profiles));
-  } catch (e) {
-    // ignore
-  }
-}
-
 const getAuthHeaders = () => {
   const token = sessionStorage.getItem('hr_admin_token');
   const pwd = localStorage.getItem('hr_admin_pwd');
@@ -142,9 +122,9 @@ export const api = {
     return true;
   },
 
-  // Get all saved profiles (Supabase Direct -> Netlify API -> Cache)
+  // Get all saved profiles (Supabase Direct -> Netlify API -> Zero Mock Fallback)
   async getProfiles() {
-    // 1. Try Direct Supabase Query first if available
+    // 1. Try Direct Supabase Query first
     if (isBrowserSupabaseAvailable()) {
       try {
         const { data, error } = await supabase
@@ -153,29 +133,27 @@ export const api = {
           .order('total_solved', { ascending: false });
 
         if (!error && Array.isArray(data) && data.length > 0) {
-          const mapped = data.map(mapSupabaseRowToProfile);
-          saveLocalProfiles(mapped);
-          return mapped;
+          return data.map(mapSupabaseRowToProfile);
         }
       } catch (err) {
-        console.warn('[API] Browser Supabase fetch skipped:', err.message);
+        console.warn('[API] Direct Supabase query error:', err.message);
       }
     }
 
-    // 2. Fallback to /api/profiles
+    // 2. Query /api/profiles
     try {
       const res = await axios.get(`${API_BASE}/profiles`, { timeout: 8000 });
-      if (res.data?.success && Array.isArray(res.data.data)) {
-        saveLocalProfiles(res.data.data);
+      if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
         return res.data.data;
       }
     } catch (e) {
-      console.warn('Backend API unreachable, checking local storage cache:', e.message);
+      console.warn('[API] Backend /api/profiles error:', e.message);
     }
-    return getLocalProfiles();
+
+    return [];
   },
 
-  // Get or fetch single profile
+  // Get single profile
   async getProfile(username, forceRefresh = false) {
     const clean = extractUsername(username);
 
@@ -191,11 +169,12 @@ export const api = {
         if (!error && data) {
           return mapSupabaseRowToProfile(data);
         }
-      } catch (err) {
+      } catch {
         // continue
       }
     }
 
+    // 2. Query /api/profile/:username
     try {
       const url = `${API_BASE}/profile/${clean}${forceRefresh ? '?forceRefresh=true' : ''}`;
       const res = await axios.get(url, { timeout: 10000 });
@@ -203,12 +182,8 @@ export const api = {
         return res.data.data;
       }
     } catch (e) {
-      console.warn(`Error fetching profile for ${clean}:`, e.message);
+      throw new Error(e.response?.data?.error || `Profile @${clean} not found`);
     }
-    
-    const local = getLocalProfiles();
-    const found = local.find(p => p.username.toLowerCase() === clean.toLowerCase());
-    if (found) return found;
 
     throw new Error(`Profile data for "${clean}" could not be retrieved.`);
   },
@@ -252,7 +227,7 @@ export const api = {
     return res.data;
   },
 
-  // Sync / refresh all profiles
+  // Sync all profiles
   async syncAllProfiles() {
     const res = await axios.post(
       `${API_BASE}/profiles/sync`, 
@@ -276,13 +251,10 @@ export const api = {
   // Delete profile
   async deleteProfile(username) {
     const clean = extractUsername(username);
-    await axios.delete(
+    const res = await axios.delete(
       `${API_BASE}/profiles/${clean}`, 
       { headers: getAuthHeaders(), timeout: 8000 }
     );
-    const local = getLocalProfiles();
-    const filtered = local.filter(p => p.username.toLowerCase() !== clean.toLowerCase());
-    saveLocalProfiles(filtered);
-    return { success: true };
+    return res.data;
   }
 };

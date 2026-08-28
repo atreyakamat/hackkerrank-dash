@@ -4,7 +4,6 @@ import cors from 'cors';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { 
   getSupabaseProfiles, 
   getSupabaseProfile, 
@@ -14,9 +13,6 @@ import {
   isSupabaseConfigured, 
   migrateLocalDataToSupabase 
 } from './supabase.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export const app = express();
 const PORT = process.env.PORT || 3001;
@@ -69,26 +65,24 @@ export function calculateStars(slug, points) {
   return 0;
 }
 
-// Find and read the packaged baseline data/profiles.json across environments (Local Dev Reference)
+// Find and read the packaged baseline data/profiles.json across environments (Local Dev Reference only)
 function getBundledBaselineProfiles() {
   const candidatePaths = [
     path.join(process.cwd(), 'data/profiles.json'),
-    path.join(__dirname, '../data/profiles.json'),
-    path.join(__dirname, '../../data/profiles.json'),
-    path.join(__dirname, 'data/profiles.json')
+    '/var/task/data/profiles.json'
   ];
 
   for (const filePath of candidatePaths) {
-    if (fs.existsSync(filePath)) {
-      try {
+    try {
+      if (fs.existsSync(filePath)) {
         const raw = fs.readFileSync(filePath, 'utf-8');
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
-      } catch (e) {
-        // continue search
       }
+    } catch (e) {
+      // continue search
     }
   }
   return [];
@@ -108,7 +102,7 @@ export async function readDb() {
         return supabaseProfiles;
       }
       
-      // If Supabase table exists but has 0 records, seed from verified local baseline
+      // If Supabase table exists but has 0 records, seed from verified baseline
       if (Array.isArray(supabaseProfiles) && supabaseProfiles.length === 0) {
         const baseline = getBundledBaselineProfiles();
         if (baseline.length > 0) {
@@ -632,13 +626,13 @@ apiRouter.delete('/profiles/:username', requireAdminAuth, async (req, res) => {
   res.json({ success: true, message: `Profile @${username} removed from tracking` });
 });
 
-// Mount the API router across all path variations
+// Mount the API router across all Netlify and local path variations
 app.use('/.netlify/functions/api', apiRouter);
 app.use('/api', apiRouter);
 app.use('/', apiRouter);
 
 // Serve static production build if available
-const DIST_DIR = path.join(__dirname, '../dist');
+const DIST_DIR = path.join(process.cwd(), 'dist');
 if (fs.existsSync(DIST_DIR)) {
   app.use(express.static(DIST_DIR));
   app.use((req, res, next) => {
