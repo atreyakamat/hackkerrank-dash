@@ -243,6 +243,43 @@ export function extractUsername(input) {
   return str.replace(/^@/, '').split('?')[0].split('/')[0].trim();
 }
 
+// Input validator for HackerRank username or profile URL
+export function validateHackerRankInput(input) {
+  if (!input || !input.trim()) {
+    return { isValid: false, error: 'Please enter a username or profile URL' };
+  }
+  const str = input.trim();
+  const isUrl = str.startsWith('http://') || str.startsWith('https://');
+
+  if (isUrl) {
+    try {
+      const parsed = new URL(str);
+      if (!parsed.hostname.includes('hackerrank.com')) {
+        return { isValid: false, error: 'URL must belong to hackerrank.com (e.g. https://www.hackerrank.com/profile/username)' };
+      }
+      const extracted = extractUsername(str);
+      if (!extracted || extracted.length < 2) {
+        return { isValid: false, error: 'Could not extract a valid HackerRank username from URL' };
+      }
+      return { isValid: true, isUrl: true, sanitizedUsername: extracted };
+    } catch {
+      return { isValid: false, error: 'Invalid URL format' };
+    }
+  }
+
+  // Username validation: alphanumeric with underscores and hyphens
+  const clean = extractUsername(str);
+  const usernameRegex = /^[a-zA-Z0-9_\-]+$/;
+  if (!usernameRegex.test(clean)) {
+    return { isValid: false, error: 'Username may only contain letters, numbers, hyphens, and underscores' };
+  }
+  if (clean.length < 2) {
+    return { isValid: false, error: 'Username must be at least 2 characters' };
+  }
+
+  return { isValid: true, isUrl: false, sanitizedUsername: clean };
+}
+
 // Local storage fallback key
 const LOCAL_STORAGE_KEY = 'hr_dashboard_profiles_v1';
 

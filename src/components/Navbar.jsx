@@ -44,10 +44,10 @@ export default function Navbar({
     p.customMeta?.batch?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Public tabs visible to all peers
+  // Public tabs visible to all peers (Dashboard is the first tab)
   const publicTabs = [
+    { id: 'dashboard', label: 'Peer Dashboard', icon: Code2 },
     { id: 'analytics', label: 'Peer Bar Graphs', icon: BarChart3 },
-    { id: 'dashboard', label: 'Individual Dashboard', icon: Code2 },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { id: 'compare', label: 'Compare Peers', icon: GitCompare }
   ];

@@ -6,6 +6,7 @@ import {
 } from './services/api';
 import Navbar from './components/Navbar';
 import ProfileHero from './components/ProfileHero';
+import PeerOverviewStrip from './components/PeerOverviewStrip';
 import MetricsCards from './components/MetricsCards';
 import BadgesSection from './components/BadgesSection';
 import SubmissionHeatmap from './components/SubmissionHeatmap';
@@ -46,13 +47,15 @@ export default function App() {
 
   const [isAdminRoute, setIsAdminRoute] = useState(isDirectAdminUrl);
   const initialPeer = searchParams.get('peer') || 'atkamat1204';
+  
+  // DEFAULT TO 'dashboard' FOR CLEAN INITIAL VIEW
   const initialTab = isDirectAdminUrl 
     ? (searchParams.get('tab') || 'admin')
-    : (searchParams.get('tab') || 'analytics');
+    : (searchParams.get('tab') || 'dashboard');
 
   const [profiles, setProfiles] = useState(DEFAULT_PROFILES);
   const [activeUsername, setActiveUsername] = useState(initialPeer);
-  const [activeTab, setActiveTab] = useState(initialTab); // analytics (default public), dashboard, leaderboard, compare, admin
+  const [activeTab, setActiveTab] = useState(initialTab); // dashboard (default clean), analytics, leaderboard, compare, admin
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -207,7 +210,7 @@ export default function App() {
       });
       setShowAddModal(false);
       setQuickAddInput('');
-      setActiveTab('analytics');
+      setActiveTab('dashboard');
       confetti({
         particleCount: 40,
         spread: 60,
@@ -224,7 +227,7 @@ export default function App() {
   // Exit admin mode back to public tracker
   const handleExitAdmin = () => {
     setIsAdminRoute(false);
-    setActiveTab('analytics');
+    setActiveTab('dashboard');
     window.history.pushState({}, '', '/');
   };
 
@@ -274,22 +277,17 @@ export default function App() {
           </div>
         )}
 
-        {/* DEFAULT TAB 1: Peer Group Bar Graphs & Overview Analytics (INITIAL PUBLIC LANDING PAGE) */}
-        {activeTab === 'analytics' && (
-          <PeerAnalyticsGraphs
-            profiles={profiles}
-            onSelectProfile={handleSelectProfile}
-            activeUsername={activeUsername}
-            onAddProfile={handleAddProfile}
-            openAddModal={() => setShowAddModal(true)}
-            isAdminRoute={isAdminRoute}
-          />
-        )}
-
-        {/* TAB 2: Individual Peer Dashboard with Profile Graphs */}
+        {/* DEFAULT TAB 1: CLEAN PEER DASHBOARD (INITIAL VIEW) */}
         {activeTab === 'dashboard' && currentProfile && (
           <div className="space-y-6 animate-in fade-in duration-300">
             
+            {/* Top Peer Group Overview & Mini Bar Graph Strip */}
+            <PeerOverviewStrip
+              profiles={profiles}
+              activeUsername={activeUsername}
+              onSelectProfile={handleSelectProfile}
+            />
+
             {/* Profile Hero Header */}
             <ProfileHero
               profile={currentProfile}
@@ -342,6 +340,18 @@ export default function App() {
             />
 
           </div>
+        )}
+
+        {/* TAB 2: Full Multi-Peer Comparative Bar Graphs */}
+        {activeTab === 'analytics' && (
+          <PeerAnalyticsGraphs
+            profiles={profiles}
+            onSelectProfile={handleSelectProfile}
+            activeUsername={activeUsername}
+            onAddProfile={handleAddProfile}
+            openAddModal={() => setShowAddModal(true)}
+            isAdminRoute={isAdminRoute}
+          />
         )}
 
         {/* TAB 3: Peer Group Leaderboard */}
