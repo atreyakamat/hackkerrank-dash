@@ -319,24 +319,19 @@ apiRouter.post('/admin/login', (req, res) => {
 // 1. GET all profiles (Authoritative Supabase PostgreSQL read)
 apiRouter.get('/profiles', async (req, res) => {
   try {
-    if (isSupabaseConfigured()) {
-      const profiles = await getSupabaseProfiles();
-      if (profiles !== null) {
-        return res.json({ 
-          success: true, 
-          count: profiles.length, 
-          data: profiles,
-          serverTime: new Date().toISOString()
-        });
-      }
+    if (!isSupabaseConfigured()) {
+      return res.status(500).json({ success: false, error: 'Supabase client not initialized' });
+    }
+
+    const profiles = await getSupabaseProfiles();
+    if (profiles === null) {
       return res.status(500).json({ success: false, error: 'Failed to read from Supabase PostgreSQL database' });
     }
 
-    // Local offline development only without Supabase
     return res.json({ 
       success: true, 
-      count: 0, 
-      data: [],
+      count: profiles.length, 
+      data: profiles,
       serverTime: new Date().toISOString()
     });
   } catch (err) {
@@ -400,7 +395,6 @@ apiRouter.post('/profiles', requireAdminAuth, async (req, res) => {
       });
     }
 
-    console.log(`[MUTATION] ADD | @${username} | ${now} | SUCCESS (Offline)`);
     res.status(201).json({ success: true, data: fresh });
   } catch (err) {
     console.warn(`[MUTATION] ADD | @${username} | ${now} | FAILURE: ${err.message}`);

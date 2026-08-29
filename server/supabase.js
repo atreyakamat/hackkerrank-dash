@@ -1,55 +1,33 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
-const DEFAULT_SUPABASE_URL = 'https://bjejovuayqtxqhevvvuu.supabase.co';
-const DEFAULT_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqZWpvdnVheXF0eHFoZXZ2dnV1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzg5NTc3OSwiZXhwIjoyMTAzNDcxNzc5fQ.tZBLhgf0ruk9KwGTsesLj3XLOXumKiM_vwPAjZUx3co';
+export const DEFAULT_SUPABASE_URL = 'https://bjejovuayqtxqhevvvuu.supabase.co';
+export const DEFAULT_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqZWpvdnVheXF0eHFoZXZ2dnV1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzg5NTc3OSwiZXhwIjoyMTAzNDcxNzc5fQ.tZBLhgf0ruk9KwGTsesLj3XLOXumKiM_vwPAjZUx3co';
 
-function resolveServiceKey() {
-  const envServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (envServiceKey && envServiceKey.includes('eyJ')) {
-    try {
-      const payload = JSON.parse(Buffer.from(envServiceKey.split('.')[1], 'base64').toString('utf-8'));
-      if (payload.role === 'service_role') return envServiceKey;
-    } catch {
-      return envServiceKey;
-    }
-  }
-
-  const envKey = process.env.SUPABASE_KEY;
-  if (envKey && envKey.includes('eyJ')) {
-    try {
-      const payload = JSON.parse(Buffer.from(envKey.split('.')[1], 'base64').toString('utf-8'));
-      if (payload.role === 'service_role') return envKey;
-    } catch {
-      // not a service_role key
-    }
-  }
-
-  return DEFAULT_SERVICE_ROLE_KEY;
-}
-
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
-const SUPABASE_KEY = resolveServiceKey();
+export const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+export const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || DEFAULT_SERVICE_ROLE_KEY;
 
 let supabase = null;
 
-if (SUPABASE_URL && SUPABASE_KEY) {
-  try {
-    supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: false }
-    });
-    console.log('[SUPABASE] Connected to Supabase PostgreSQL project:', SUPABASE_URL);
-  } catch (e) {
-    console.warn('[SUPABASE] Connection initialization error:', e.message);
+export function getClient() {
+  if (!supabase && SUPABASE_URL && SUPABASE_KEY) {
+    try {
+      supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: { persistSession: false }
+      });
+      console.log('[SUPABASE] Initialized Supabase PostgreSQL client:', SUPABASE_URL);
+    } catch (e) {
+      console.warn('[SUPABASE] Initialization error:', e.message);
+    }
   }
+  return supabase;
 }
+
+// Initial client creation
+getClient();
 
 export function isSupabaseConfigured() {
-  return Boolean(supabase);
-}
-
-export function getClient() {
-  return supabase;
+  return Boolean(getClient());
 }
 
 // Convert snake_case DB row from Supabase to camelCase App Model
@@ -121,9 +99,13 @@ export function profileToRow(p) {
 
 // Read all profiles directly from Supabase PostgreSQL (Fresh read, no caching)
 export async function getSupabaseProfiles() {
-  if (!supabase) return null;
+  const client = getClient();
+  if (!client) {
+    console.warn('[SUPABASE] Client not initialized');
+    return null;
+  }
   try {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('tracked_profiles')
       .select('*')
       .order('total_solved', { ascending: false });
@@ -145,9 +127,10 @@ export async function getSupabaseProfiles() {
 
 // Read single profile directly from Supabase PostgreSQL
 export async function getSupabaseProfile(username) {
-  if (!supabase) return null;
+  const client = getClient();
+  if (!client) return null;
   try {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('tracked_profiles')
       .select('*')
       .eq('username', username)
@@ -162,10 +145,11 @@ export async function getSupabaseProfile(username) {
 
 // Atomic row-level upsert of a single profile in Supabase
 export async function upsertSupabaseProfile(profile) {
-  if (!supabase) return null;
+  const client = getClient();
+  if (!client) return null;
   const row = profileToRow(profile);
   try {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('tracked_profiles')
       .upsert(row, { onConflict: 'username' })
       .select()
@@ -181,7 +165,8 @@ export async function upsertSupabaseProfile(profile) {
 
 // Atomic row-level update of profile metadata in Supabase
 export async function updateSupabaseProfileMeta(username, payload) {
-  if (!supabase) return null;
+  const client = getClient();
+  if (!client) return null;
   try {
     const updateData = { updated_at: new Date().toISOString() };
     if (payload.customMeta) updateData.custom_meta = payload.customMeta;
@@ -190,7 +175,7 @@ export async function updateSupabaseProfileMeta(username, payload) {
     if (payload.school) updateData.school = payload.school;
     if (payload.job_title) updateData.job_title = payload.job_title;
 
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('tracked_profiles')
       .update(updateData)
       .eq('username', username)
@@ -207,9 +192,10 @@ export async function updateSupabaseProfileMeta(username, payload) {
 
 // Atomic row-level deletion of a profile from Supabase PostgreSQL
 export async function deleteSupabaseProfile(username) {
-  if (!supabase) return false;
+  const client = getClient();
+  if (!client) return false;
   try {
-    const { error } = await supabase
+    const { error } = await client
       .from('tracked_profiles')
       .delete()
       .eq('username', username);
