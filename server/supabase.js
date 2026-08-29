@@ -1,6 +1,18 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
+// Polyfill global WebSocket for Node.js / Lambda environments where native WebSocket is absent
+if (typeof globalThis.WebSocket === 'undefined') {
+  class DummyWebSocket {
+    constructor() {}
+    send() {}
+    close() {}
+    addEventListener() {}
+    removeEventListener() {}
+  }
+  globalThis.WebSocket = DummyWebSocket;
+}
+
 export const DEFAULT_SUPABASE_URL = 'https://bjejovuayqtxqhevvvuu.supabase.co';
 export const DEFAULT_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqZWpvdnVheXF0eHFoZXZ2dnV1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzg5NTc3OSwiZXhwIjoyMTAzNDcxNzc5fQ.tZBLhgf0ruk9KwGTsesLj3XLOXumKiM_vwPAjZUx3co';
 
@@ -18,9 +30,11 @@ export function getClient() {
           persistSession: false,
           autoRefreshToken: false,
           detectSessionInUrl: false
-        }
+        },
+        realtime: false
       });
       lastInitError = null;
+      console.log('[SUPABASE] Initialized Supabase PostgreSQL client:', SUPABASE_URL);
     } catch (e) {
       lastInitError = e.message || String(e);
       console.warn('[SUPABASE] Initialization error:', lastInitError);
