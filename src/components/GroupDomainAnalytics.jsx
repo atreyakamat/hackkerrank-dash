@@ -1,5 +1,5 @@
 import React from 'react';
-import { Code2 } from 'lucide-react';
+import { Code2, Award, Star } from 'lucide-react';
 
 export default function GroupDomainAnalytics({ profiles = [] }) {
   if (!profiles || profiles.length === 0) return null;
@@ -32,7 +32,6 @@ export default function GroupDomainAnalytics({ profiles = [] }) {
         if (!domainMap[name]) {
           domainMap[name] = { name, points: 0, stars: 0, peers: 0 };
         }
-        // If domain already existed from badge, ensure points aren't duplicated if already counted
         if (domainMap[name].points < score) {
           domainMap[name].points = Math.max(domainMap[name].points, score);
         }
@@ -49,37 +48,46 @@ export default function GroupDomainAnalytics({ profiles = [] }) {
   const maxPoints = Math.max(...domainList.map(d => d.points), 1);
 
   return (
-    <div className="border border-[#263545] bg-[#121B27] rounded-xl p-5 sm:p-6 space-y-4">
-      <div className="flex items-center justify-between pb-3 border-b border-[#263545]">
-        <div>
-          <h2 className="text-base font-bold text-white tracking-tight">
-            Skill Performance
-          </h2>
-          <p className="text-xs text-slate-400">
-            Total track score across tracked cohort
-          </p>
+    <div className="border border-[#263545] bg-[#121B27] rounded-2xl p-4 sm:p-6 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#263545]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-[#1F2C3F] border border-[#263545] flex items-center justify-center text-sky-400">
+            <Code2 className="w-3.5 h-3.5" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-white tracking-tight">
+              Domain & Skill Mastery
+            </h3>
+            <p className="text-xs text-slate-400">
+              Cumulative practice points and stars across tracks
+            </p>
+          </div>
+        </div>
+
+        <div className="text-xs font-mono text-slate-400 bg-[#0E141E] px-2.5 py-1 rounded-lg border border-[#263545] shrink-0 self-start sm:self-auto">
+          <span>{domainList.length} active domains</span>
         </div>
       </div>
 
-      <div className="space-y-3 pt-1">
+      <div className="space-y-3 pt-1 font-mono">
         {domainList.map(dom => {
           const pct = Math.max(4, Math.round((dom.points / maxPoints) * 100));
 
           return (
-            <div key={dom.name} className="space-y-1 font-mono text-xs">
+            <div key={dom.name} className="space-y-1.5 text-xs bg-[#0E141E] p-3 rounded-xl border border-[#263545]">
               <div className="flex items-center justify-between text-slate-300">
-                <span className="font-semibold">{dom.name}</span>
-                <div className="flex items-center gap-2">
+                <span className="font-bold text-white">{dom.name}</span>
+                <div className="flex items-center gap-3">
                   {dom.stars > 0 && (
-                    <span className="text-amber-400">★ {dom.stars}</span>
+                    <span className="text-amber-400 font-bold">★ {dom.stars} stars</span>
                   )}
-                  <span className="text-white font-bold">{dom.points} pts</span>
+                  <span className="text-sky-400 font-bold">{dom.points} pts</span>
                 </div>
               </div>
 
-              <div className="w-full h-2.5 bg-[#0E141E] rounded-full overflow-hidden border border-[#263545]/60">
+              <div className="w-full h-2.5 bg-[#121B27] rounded-full overflow-hidden border border-[#263545]/60">
                 <div
-                  className="h-full bg-sky-400 rounded-full transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-sky-500 to-sky-400 rounded-full transition-all duration-500"
                   style={{ width: `${pct}%` }}
                 />
               </div>
