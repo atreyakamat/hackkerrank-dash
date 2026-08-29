@@ -38,7 +38,7 @@ export default function App() {
 
   const [profiles, setProfiles] = useState(DEFAULT_PROFILES);
   const [selectedPeerUsername, setSelectedPeerUsername] = useState(initialPeerParam);
-  const [activeTab, setActiveTab] = useState(initialTabParam); // 'overview', 'leaderboard', 'compare', 'admin'
+  const [activeTab, setActiveTab] = useState(initialTabParam); // 'overview', 'compare', 'admin'
   const [isLoading, setIsLoading] = useState(true);
   const [editProfileData, setEditProfileData] = useState(null);
 
@@ -70,7 +70,7 @@ export default function App() {
   useEffect(() => {
     loadAllProfiles(false);
 
-    // Lightweight frontend polling every 60s to retrieve refreshed backend data
+    // Polling every 60s to retrieve refreshed backend data
     const pollInterval = setInterval(() => {
       loadAllProfiles(true);
     }, 60 * 1000);
@@ -157,7 +157,7 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0E141E] text-slate-100 flex flex-col selection:bg-[#2EC866]/30 selection:text-[#00EA64]">
+    <div className="min-h-screen bg-[#0E141E] text-slate-100 flex flex-col selection:bg-[#00EA64]/30 selection:text-[#00EA64]">
       
       {/* 1. Admin Authentication Barrier for /hacko/admin */}
       {isAdminRoute && !isAdminAuthenticated && (
@@ -172,8 +172,7 @@ export default function App() {
         <div className="bg-gradient-to-r from-amber-500/20 via-amber-600/10 to-transparent border-b border-amber-500/30 px-4 py-2 text-xs font-mono flex items-center justify-between text-amber-300">
           <div className="flex items-center gap-2">
             <Unlock className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-bold">ADMIN CONSOLE ACTIVE (/hacko/admin)</span>
-            <span className="hidden md:inline text-slate-400">• Password verified. Changes persist live on Netlify & public hub.</span>
+            <span className="font-bold">HackkerRank Dashboard Admin</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -181,7 +180,7 @@ export default function App() {
               className="flex items-center gap-1 px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-lg border border-amber-500/40 text-[11px] font-bold transition-all"
             >
               <ArrowLeft className="w-3 h-3" />
-              <span>View Public Analytics</span>
+              <span>Back to Dashboard</span>
             </button>
             <button
               onClick={handleLogoutAdmin}
@@ -215,7 +214,7 @@ export default function App() {
         {isLoading && (
           <div className="flex items-center justify-center p-4 text-[#00EA64] font-mono text-xs gap-2">
             <RefreshCw className="w-4 h-4 animate-spin" />
-            <span>Synchronizing Peer Group Data...</span>
+            <span>Synchronizing HackkerRank Dashboard...</span>
           </div>
         )}
 
@@ -236,15 +235,7 @@ export default function App() {
           />
         )}
 
-        {/* PUBLIC VIEW C: Group Leaderboard */}
-        {!selectedPeerUsername && activeTab === 'leaderboard' && (
-          <LeaderboardView
-            profiles={profiles}
-            onSelectProfile={handleSelectPeer}
-          />
-        )}
-
-        {/* PUBLIC VIEW D: Side-by-Side Peer Comparison */}
+        {/* PUBLIC VIEW C: Side-by-Side Peer Comparison */}
         {!selectedPeerUsername && activeTab === 'compare' && (
           <ComparisonView
             profiles={profiles}
@@ -270,18 +261,14 @@ export default function App() {
 
       </main>
 
-      {/* 5. Minimal Clean Public Analytics Footer */}
+      {/* 5. Minimal Clean Footer */}
       <footer className="border-t border-[#263545] bg-[#0E141E] py-6 text-center text-xs text-slate-500 font-mono">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="text-[#00EA64] font-black">[H]</span>
-            <span className="text-slate-300 font-semibold">HackerRank Peer Analytics Platform</span>
+            <span className="text-slate-300 font-bold">HackkerRank Dashboard</span>
           </div>
           <div className="flex items-center gap-4 text-[11px] text-slate-400">
-            <span>Visual Performance Intelligence</span>
-            <span>•</span>
-            <span>Live Peer Cohort Tracking</span>
-            <span>•</span>
             <a
               href="https://www.hackerrank.com"
               target="_blank"

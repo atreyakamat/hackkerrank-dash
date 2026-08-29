@@ -76,23 +76,14 @@ export default function PublicAnalyticsDashboard({
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-200">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
       
       {/* 1. Header & Live Sync Status */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#263545]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#263545]">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#00EA64] animate-pulse" />
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#00EA64]">
-              Live HackerRank Intelligence
-            </span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Peer Performance Analytics
+            HackkerRank <span className="text-[#00EA64]">Dashboard</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Cohort leaderboard, challenge statistics, and skill progression
-          </p>
         </div>
 
         {/* Real Sync Metadata Pill */}
@@ -130,10 +121,10 @@ export default function PublicAnalyticsDashboard({
 
       {/* 4. SECTION 2: PERFORMANCE ANALYTICS & VISUALIZATIONS */}
       <div className="space-y-6">
-        <div className="flex items-center gap-2 pt-4">
+        <div className="flex items-center gap-2 pt-2">
           <BarChart3 className="w-4 h-4 text-[#00EA64]" />
-          <h2 className="text-lg font-bold text-white tracking-tight uppercase font-mono text-xs">
-            Performance Analytics & Graphs
+          <h2 className="text-sm font-bold text-white tracking-tight uppercase font-mono">
+            Analytics & Graphs
           </h2>
         </div>
 

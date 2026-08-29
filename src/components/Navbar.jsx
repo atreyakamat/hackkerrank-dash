@@ -39,13 +39,12 @@ export default function Navbar({
 
   // Pure public analytics navigation
   const publicTabs = [
-    { id: 'overview', label: 'Peer Analytics', icon: BarChart3 },
-    { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
-    { id: 'compare', label: 'Compare Peers', icon: GitCompare }
+    { id: 'overview', label: 'Leaderboard', icon: Trophy },
+    { id: 'compare', label: 'Compare', icon: GitCompare }
   ];
 
   const tabs = (isAdminRoute && isAdminAuthenticated)
-    ? [...publicTabs, { id: 'admin', label: 'Admin Hub', icon: ShieldCheck, badge: profiles.length }]
+    ? [...publicTabs, { id: 'admin', label: 'Admin', icon: ShieldCheck, badge: profiles.length }]
     : publicTabs;
 
   // Handle Clean Public Share Link
@@ -77,28 +76,22 @@ export default function Navbar({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-4">
           
-          {/* Brand Logo & Platform Title */}
+          {/* Brand Logo & Title */}
           <div className="flex items-center gap-3 shrink-0">
             <button 
               onClick={() => {
                 onSelectPeer(null);
                 setActiveTab('overview');
               }} 
-              className="flex items-center gap-2 group text-left focus:outline-none"
+              className="flex items-center gap-2.5 group text-left focus:outline-none"
             >
-              <div className="w-10 h-10 rounded-xl bg-[#151F2C] border border-[#2EC866]/40 flex items-center justify-center shadow-md group-hover:border-[#00EA64] transition-all">
-                <span className="font-mono font-black text-[#00EA64] text-xl tracking-tighter">[H]</span>
+              <div className="w-9 h-9 rounded-xl bg-[#151F2C] border border-[#00EA64]/40 flex items-center justify-center shadow-md group-hover:border-[#00EA64] transition-all">
+                <span className="font-mono font-black text-[#00EA64] text-lg tracking-tighter">[H]</span>
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-white font-extrabold text-sm sm:text-base tracking-wide uppercase font-sans">
-                    HACKER<span className="text-[#00EA64]">RANK</span>
-                  </span>
-                  <span className="bg-[#2EC866]/15 text-[#00EA64] border border-[#2EC866]/30 text-[10px] font-mono px-1.5 py-0.5 rounded font-bold">
-                    PEER ANALYTICS
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-400 font-mono hidden sm:block">Performance Intelligence & Group Tracking</p>
+                <span className="text-white font-extrabold text-base sm:text-lg tracking-tight font-sans">
+                  HackkerRank <span className="text-[#00EA64]">Dashboard</span>
+                </span>
               </div>
             </button>
           </div>
@@ -119,7 +112,7 @@ export default function Navbar({
                     isActive
                       ? tab.id === 'admin'
                         ? 'bg-amber-400 text-black font-bold shadow'
-                        : 'bg-[#2EC866] text-black shadow-md shadow-[#2EC866]/20 font-bold'
+                        : 'bg-[#00EA64] text-black shadow-md font-bold'
                       : 'text-slate-300 hover:text-white hover:bg-[#1E2A38]'
                   }`}
                 >
@@ -137,24 +130,24 @@ export default function Navbar({
             })}
           </nav>
 
-          {/* Right Section: Share Link & Peer Search Filter */}
+          {/* Right Section: Share Link & Peer Inspector */}
           <div className="flex items-center gap-2">
             
-            {/* Share Tracker Link Button */}
+            {/* Share Link Button */}
             <button
               onClick={handleShareLink}
-              title="Copy shareable link for peer analytics"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#151F2C] hover:bg-[#1E2A38] border border-[#263545] hover:border-[#2EC866]/50 rounded-xl text-xs font-semibold text-slate-200 hover:text-[#00EA64] transition-all"
+              title="Copy shareable link"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#151F2C] hover:bg-[#1E2A38] border border-[#263545] hover:border-[#00EA64]/50 rounded-xl text-xs font-semibold text-slate-200 hover:text-[#00EA64] transition-all"
             >
               {copiedLink ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-[#00EA64]" />
-                  <span className="text-[#00EA64]">Link Copied!</span>
+                  <span className="text-[#00EA64]">Copied!</span>
                 </>
               ) : (
                 <>
                   <Share2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Share Analytics</span>
+                  <span className="hidden sm:inline">Share</span>
                 </>
               )}
             </button>
@@ -170,7 +163,7 @@ export default function Navbar({
                     <img 
                       src={currentSelectedProfile.avatar} 
                       alt={currentSelectedProfile.username}
-                      className="w-5 h-5 rounded-full bg-slate-800 object-cover border border-[#2EC866]/60"
+                      className="w-5 h-5 rounded-full bg-slate-800 object-cover border border-[#00EA64]/60"
                       onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${currentSelectedProfile.username}`; }}
                     />
                     <span className="text-xs font-mono text-[#00EA64] font-bold max-w-[100px] truncate">
@@ -180,7 +173,7 @@ export default function Navbar({
                 ) : (
                   <div className="flex items-center gap-1.5 text-xs text-slate-300">
                     <Users className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="hidden sm:inline">Inspect Peer ({profiles.length})</span>
+                    <span className="hidden sm:inline">Members ({profiles.length})</span>
                   </div>
                 )}
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
@@ -190,17 +183,14 @@ export default function Navbar({
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-72 bg-[#151F2C] border border-[#263545] rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <div className="px-3 pb-2 border-b border-[#263545]">
-                    <p className="text-[11px] font-bold uppercase text-slate-400 font-mono tracking-wider mb-1.5">
-                      Select Peer to Inspect
-                    </p>
                     <div className="relative">
                       <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
                       <input
                         type="text"
-                        placeholder="Search peers..."
+                        placeholder="Search members..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-[#0E141E] border border-[#263545] rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#2EC866]"
+                        className="w-full bg-[#0E141E] border border-[#263545] rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00EA64]"
                       />
                     </div>
                   </div>
@@ -216,7 +206,7 @@ export default function Navbar({
                             setDropdownOpen(false);
                           }}
                           className={`w-full flex items-center justify-between px-3 py-2 text-left hover:bg-[#1E2A38] transition-colors ${
-                            isSelected ? 'bg-[#2EC866]/10 border-l-2 border-[#2EC866]' : ''
+                            isSelected ? 'bg-[#00EA64]/10 border-l-2 border-[#00EA64]' : ''
                           }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
@@ -250,7 +240,7 @@ export default function Navbar({
                         }}
                         className="w-full py-1 text-center text-xs font-mono text-slate-400 hover:text-white"
                       >
-                        ← Back to Group Overview
+                        ← Back to Leaderboard
                       </button>
                     </div>
                   )}
@@ -285,7 +275,7 @@ export default function Navbar({
                   }}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                     isActive
-                      ? 'bg-[#2EC866] text-black font-bold'
+                      ? 'bg-[#00EA64] text-black font-bold'
                       : 'text-slate-300 hover:bg-[#1E2A38]'
                   }`}
                 >
