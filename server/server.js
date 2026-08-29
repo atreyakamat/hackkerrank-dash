@@ -71,18 +71,19 @@ export async function fetchHackerRankProfile(username) {
     throw new Error('Invalid username provided');
   }
 
+  const encodedUser = encodeURIComponent(cleanUser);
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Accept': 'application/json',
-    'Referer': `https://www.hackerrank.com/profile/${cleanUser}`
+    'Referer': `https://www.hackerrank.com/profile/${encodedUser}`
   };
 
   const [profileRes, badgesRes, scoresRes, challengesRes, heatmapRes] = await Promise.allSettled([
-    axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}`, { headers, timeout: 8000 }),
-    axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}/badges`, { headers, timeout: 8000 }),
-    axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}/scores_elo`, { headers, timeout: 8000 }),
-    axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}/recent_challenges?limit=20`, { headers, timeout: 8000 }),
-    axios.get(`https://www.hackerrank.com/rest/hackers/${cleanUser}/submission_histories`, { headers, timeout: 8000 })
+    axios.get(`https://www.hackerrank.com/rest/hackers/${encodedUser}`, { headers, timeout: 8000 }),
+    axios.get(`https://www.hackerrank.com/rest/hackers/${encodedUser}/badges`, { headers, timeout: 8000 }),
+    axios.get(`https://www.hackerrank.com/rest/hackers/${encodedUser}/scores_elo`, { headers, timeout: 8000 }),
+    axios.get(`https://www.hackerrank.com/rest/hackers/${encodedUser}/recent_challenges?limit=20`, { headers, timeout: 8000 }),
+    axios.get(`https://www.hackerrank.com/rest/hackers/${encodedUser}/submission_histories`, { headers, timeout: 8000 })
   ]);
 
   const profileData = profileRes.status === 'fulfilled' ? profileRes.value.data?.model : null;
@@ -555,7 +556,14 @@ if (fs.existsSync(DIST_DIR)) {
 
 // Only start standalone HTTP server when not running in serverless Lambda runtime
 if (!process.env.NETLIFY && !process.env.AWS_LAMBDA_FUNCTION_NAME && !process.env.LAMBDA_TASK_ROOT && process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`[SERVER] HackerRank Analytics Server running on port ${PORT}`);
+  });
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      // ignore
+    } else {
+      console.error('[SERVER] Listen error:', err.message);
+    }
   });
 }
