@@ -11,7 +11,7 @@ if (SUPABASE_URL && SUPABASE_KEY) {
     supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { persistSession: false }
     });
-    console.log('[SUPABASE] Connected to Supabase Project:', SUPABASE_URL);
+    console.log('[SUPABASE] Connected to Supabase PostgreSQL project:', SUPABASE_URL);
   } catch (e) {
     console.warn('[SUPABASE] Connection initialization error:', e.message);
   }
@@ -92,7 +92,7 @@ export function profileToRow(p) {
   };
 }
 
-// Read all profiles from Supabase PostgreSQL
+// Read all profiles directly from Supabase PostgreSQL (Fresh read, no caching)
 export async function getSupabaseProfiles() {
   if (!supabase) return null;
   try {
@@ -116,7 +116,7 @@ export async function getSupabaseProfiles() {
   }
 }
 
-// Read single profile from Supabase
+// Read single profile directly from Supabase PostgreSQL
 export async function getSupabaseProfile(username) {
   if (!supabase) return null;
   try {
@@ -133,7 +133,7 @@ export async function getSupabaseProfile(username) {
   }
 }
 
-// Upsert a single profile into Supabase
+// Atomic row-level upsert of a single profile in Supabase
 export async function upsertSupabaseProfile(profile) {
   if (!supabase) return null;
   const row = profileToRow(profile);
@@ -152,7 +152,7 @@ export async function upsertSupabaseProfile(profile) {
   }
 }
 
-// Update profile metadata in Supabase
+// Atomic row-level update of profile metadata in Supabase
 export async function updateSupabaseProfileMeta(username, payload) {
   if (!supabase) return null;
   try {
@@ -178,7 +178,7 @@ export async function updateSupabaseProfileMeta(username, payload) {
   }
 }
 
-// Delete a profile from Supabase PostgreSQL
+// Atomic row-level deletion of a profile from Supabase PostgreSQL
 export async function deleteSupabaseProfile(username) {
   if (!supabase) return false;
   try {
@@ -193,25 +193,5 @@ export async function deleteSupabaseProfile(username) {
   } catch (e) {
     console.warn(`[SUPABASE] Error deleting @${username}:`, e.message);
     return false;
-  }
-}
-
-// Migrate verified local records to Supabase PostgreSQL
-export async function migrateLocalDataToSupabase(localProfiles = []) {
-  if (!supabase || !Array.isArray(localProfiles) || localProfiles.length === 0) return;
-  console.log(`[SUPABASE] Migrating ${localProfiles.length} verified records to Supabase...`);
-  const rows = localProfiles.map(profileToRow);
-  try {
-    const { data, error } = await supabase
-      .from('tracked_profiles')
-      .upsert(rows, { onConflict: 'username' });
-
-    if (error) {
-      console.warn('[SUPABASE] Migration error:', error.message);
-    } else {
-      console.log(`[SUPABASE] Successfully persisted ${rows.length} profiles to Supabase PostgreSQL!`);
-    }
-  } catch (e) {
-    console.warn('[SUPABASE] Migration exception:', e.message);
   }
 }

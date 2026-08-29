@@ -64,29 +64,6 @@ export function calculateStars(slug, points) {
   return 0;
 }
 
-// Read offline baseline profiles only during local offline development without Supabase
-function getBundledBaselineProfiles() {
-  const candidatePaths = [
-    path.join(process.cwd(), 'data/profiles.json'),
-    '/var/task/data/profiles.json'
-  ];
-
-  for (const filePath of candidatePaths) {
-    try {
-      if (fs.existsSync(filePath)) {
-        const raw = fs.readFileSync(filePath, 'utf-8');
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch (e) {
-      // continue search
-    }
-  }
-  return [];
-}
-
 // Fetch and normalize raw HackerRank Profile from public REST endpoints
 export async function fetchHackerRankProfile(username) {
   const cleanUser = sanitizeUsername(username);
@@ -213,17 +190,15 @@ export async function fetchHackerRankProfile(username) {
   };
 }
 
-// Single central backend sync pipeline directly against Supabase
+// Single member sync pipeline directly against Supabase (Atomic, Row-Level)
 export async function syncMember(username, existingProfile = null) {
   const cleanUser = sanitizeUsername(username);
   const now = new Date().toISOString();
-  console.log(`[SYNC] Fetching @${cleanUser}...`);
 
   try {
     const fresh = await fetchHackerRankProfile(cleanUser);
-    console.log(`[SYNC] @${cleanUser} validated and parsed successfully.`);
 
-    // Strictly preserve admin-managed metadata
+    // Strictly preserve admin-managed metadata from database
     if (existingProfile?.customMeta) {
       fresh.customMeta = { ...fresh.customMeta, ...existingProfile.customMeta };
     }
@@ -238,9 +213,10 @@ export async function syncMember(username, existingProfile = null) {
       await upsertSupabaseProfile(fresh);
     }
 
+    console.log(`[MUTATION] SYNC | @${cleanUser} | ${now} | SUCCESS`);
     return { profile: fresh, error: null };
   } catch (err) {
-    console.warn(`[SYNC] @${cleanUser} sync failed: ${err.message}`);
+    console.warn(`[MUTATION] SYNC | @${cleanUser} | ${now} | FAILURE: ${err.message}`);
     if (existingProfile) {
       existingProfile.lastSyncedAt = now;
       existingProfile.lastSyncStatus = 'failed';
@@ -260,7 +236,7 @@ let isSyncInProgress = false;
 // Scheduled automatic sync every 10 minutes directly on Supabase
 export async function autoSyncProfiles() {
   if (isSyncInProgress) {
-    console.log('[SYNC] Scheduled sync skipped: another sync cycle is already in progress.');
+    console.log('[SYNC] Scheduled sync skipped: another sync cycle is in progress.');
     return;
   }
 
@@ -268,15 +244,17 @@ export async function autoSyncProfiles() {
   console.log('[SYNC] Starting scheduled sync cycle for all tracked members...');
 
   try {
+    // 1. Always query current active member list from Supabase
     const profiles = isSupabaseConfigured() ? await getSupabaseProfiles() : [];
     if (!profiles || profiles.length === 0) {
-      console.log('[SYNC] No tracked members found in Supabase.');
+      console.log('[SYNC] No tracked members found in database.');
       return;
     }
 
     let successCount = 0;
     let failCount = 0;
 
+    // 2. Independently sync each member (Row-Level update)
     for (let i = 0; i < profiles.length; i++) {
       const member = profiles[i];
       try {
@@ -337,7 +315,7 @@ apiRouter.post('/admin/login', (req, res) => {
   }
 });
 
-// 1. GET all profiles (Publicly accessible - reads directly from Supabase PostgreSQL)
+// 1. GET all profiles (Authoritative Supabase PostgreSQL read)
 apiRouter.get('/profiles', async (req, res) => {
   try {
     if (isSupabaseConfigured()) {
@@ -350,14 +328,14 @@ apiRouter.get('/profiles', async (req, res) => {
           serverTime: new Date().toISOString()
         });
       }
+      return res.status(500).json({ success: false, error: 'Failed to read from Supabase PostgreSQL database' });
     }
 
-    // Local offline dev fallback only
-    const baseline = getBundledBaselineProfiles();
-    res.json({ 
+    // Local offline development only without Supabase
+    return res.json({ 
       success: true, 
-      count: baseline.length, 
-      data: baseline,
+      count: 0, 
+      data: [],
       serverTime: new Date().toISOString()
     });
   } catch (err) {
@@ -389,10 +367,12 @@ apiRouter.get('/profile/:username', async (req, res) => {
   }
 });
 
-// 3. POST add new profile & persist directly to Supabase (Admin protected)
+// 3. POST add new profile & persist atomically to Supabase (Admin protected)
 apiRouter.post('/profiles', requireAdminAuth, async (req, res) => {
   const { username: rawInput, customMeta } = req.body;
   const username = sanitizeUsername(rawInput);
+  const now = new Date().toISOString();
+
   if (!username) {
     return res.status(400).json({ success: false, error: 'Username or profile URL is required' });
   }
@@ -411,6 +391,7 @@ apiRouter.post('/profiles', requireAdminAuth, async (req, res) => {
 
     if (isSupabaseConfigured()) {
       const saved = await upsertSupabaseProfile(fresh);
+      console.log(`[MUTATION] ADD | @${username} | ${now} | SUCCESS`);
       return res.status(201).json({ 
         success: true, 
         message: `Profile @${username} verified and saved to database`, 
@@ -418,13 +399,15 @@ apiRouter.post('/profiles', requireAdminAuth, async (req, res) => {
       });
     }
 
+    console.log(`[MUTATION] ADD | @${username} | ${now} | SUCCESS (Offline)`);
     res.status(201).json({ success: true, data: fresh });
   } catch (err) {
+    console.warn(`[MUTATION] ADD | @${username} | ${now} | FAILURE: ${err.message}`);
     res.status(400).json({ success: false, error: err.message || 'Failed to fetch HackerRank profile' });
   }
 });
 
-// 4. POST batch add profiles directly to Supabase (Admin protected)
+// 4. POST batch add profiles atomically to Supabase (Admin protected)
 apiRouter.post('/profiles/batch', requireAdminAuth, async (req, res) => {
   const { inputs } = req.body;
   if (!inputs) {
@@ -452,8 +435,10 @@ apiRouter.post('/profiles/batch', requireAdminAuth, async (req, res) => {
       if (isSupabaseConfigured()) {
         await upsertSupabaseProfile(profile);
       }
+      console.log(`[MUTATION] ADD (Batch) | @${username} | ${new Date().toISOString()} | SUCCESS`);
       results.added.push(username);
     } catch (err) {
+      console.warn(`[MUTATION] ADD (Batch) | @${username} | ${new Date().toISOString()} | FAILURE: ${err.message}`);
       results.failed.push({ username, error: err.message });
     }
     await new Promise(r => setTimeout(r, 300));
@@ -512,6 +497,8 @@ apiRouter.post('/profiles/sync', requireAdminAuth, async (req, res) => {
 apiRouter.patch('/profiles/:username', requireAdminAuth, async (req, res) => {
   const username = sanitizeUsername(req.params.username);
   const { customMeta, name, country, school, job_title } = req.body;
+  const now = new Date().toISOString();
+
   if (!username) {
     return res.status(400).json({ success: false, error: 'Username is required' });
   }
@@ -519,8 +506,10 @@ apiRouter.patch('/profiles/:username', requireAdminAuth, async (req, res) => {
   if (isSupabaseConfigured()) {
     const updated = await updateSupabaseProfileMeta(username, { customMeta, name, country, school, job_title });
     if (!updated) {
+      console.warn(`[MUTATION] EDIT | @${username} | ${now} | FAILURE: Profile not found in DB`);
       return res.status(404).json({ success: false, error: `Profile @${username} not found in database` });
     }
+    console.log(`[MUTATION] EDIT | @${username} | ${now} | SUCCESS`);
     return res.json({ success: true, data: updated });
   }
 
@@ -530,6 +519,8 @@ apiRouter.patch('/profiles/:username', requireAdminAuth, async (req, res) => {
 // 8. DELETE profile directly from Supabase PostgreSQL (Admin protected)
 apiRouter.delete('/profiles/:username', requireAdminAuth, async (req, res) => {
   const username = sanitizeUsername(req.params.username);
+  const now = new Date().toISOString();
+
   if (!username) {
     return res.status(400).json({ success: false, error: 'Username is required' });
   }
@@ -537,8 +528,10 @@ apiRouter.delete('/profiles/:username', requireAdminAuth, async (req, res) => {
   if (isSupabaseConfigured()) {
     const deleted = await deleteSupabaseProfile(username);
     if (!deleted) {
+      console.warn(`[MUTATION] DELETE | @${username} | ${now} | FAILURE: Profile could not be deleted`);
       return res.status(404).json({ success: false, error: `Profile @${username} could not be deleted` });
     }
+    console.log(`[MUTATION] DELETE | @${username} | ${now} | SUCCESS`);
     return res.json({ success: true, message: `Profile @${username} removed from tracking` });
   }
 
