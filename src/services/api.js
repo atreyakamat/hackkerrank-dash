@@ -122,9 +122,19 @@ export const api = {
     return true;
   },
 
-  // Get all saved profiles (Supabase Direct -> Netlify API -> Zero Mock Fallback)
+  // Get all saved profiles directly from Supabase via production API
   async getProfiles() {
-    // 1. Try Direct Supabase Query first
+    // 1. Production API endpoint (authoritative, queries Supabase PostgreSQL directly)
+    try {
+      const res = await axios.get(`${API_BASE}/profiles`, { timeout: 10000 });
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        return res.data.data;
+      }
+    } catch (e) {
+      console.warn('[API] Backend /api/profiles error, trying direct browser query:', e.message);
+    }
+
+    // 2. Direct Supabase Query as client-side fallback
     if (isBrowserSupabaseAvailable()) {
       try {
         const { data, error } = await supabase
@@ -140,16 +150,6 @@ export const api = {
       }
     }
 
-    // 2. Query /api/profiles
-    try {
-      const res = await axios.get(`${API_BASE}/profiles`, { timeout: 8000 });
-      if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
-        return res.data.data;
-      }
-    } catch (e) {
-      console.warn('[API] Backend /api/profiles error:', e.message);
-    }
-
     return [];
   },
 
@@ -157,24 +157,6 @@ export const api = {
   async getProfile(username, forceRefresh = false) {
     const clean = extractUsername(username);
 
-    // 1. Direct Supabase Query
-    if (isBrowserSupabaseAvailable() && !forceRefresh) {
-      try {
-        const { data, error } = await supabase
-          .from('tracked_profiles')
-          .select('*')
-          .eq('username', clean)
-          .single();
-
-        if (!error && data) {
-          return mapSupabaseRowToProfile(data);
-        }
-      } catch {
-        // continue
-      }
-    }
-
-    // 2. Query /api/profile/:username
     try {
       const url = `${API_BASE}/profile/${clean}${forceRefresh ? '?forceRefresh=true' : ''}`;
       const res = await axios.get(url, { timeout: 10000 });
@@ -182,6 +164,22 @@ export const api = {
         return res.data.data;
       }
     } catch (e) {
+      // fallback to direct browser client
+      if (isBrowserSupabaseAvailable() && !forceRefresh) {
+        try {
+          const { data, error } = await supabase
+            .from('tracked_profiles')
+            .select('*')
+            .eq('username', clean)
+            .single();
+
+          if (!error && data) {
+            return mapSupabaseRowToProfile(data);
+          }
+        } catch {
+          // ignore
+        }
+      }
       throw new Error(e.response?.data?.error || `Profile @${clean} not found`);
     }
 
