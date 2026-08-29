@@ -10,7 +10,8 @@ import {
   upsertSupabaseProfile, 
   updateSupabaseProfileMeta, 
   deleteSupabaseProfile, 
-  isSupabaseConfigured 
+  isSupabaseConfigured,
+  getLastInitError
 } from './supabase.js';
 
 export const app = express();
@@ -281,7 +282,7 @@ export async function autoSyncProfiles() {
 }
 
 // Run 10-minute auto-sync timer in local standalone development
-if (!process.env.NETLIFY && !process.env.AWS_LAMBDA_FUNCTION_NAME && !process.env.LAMBDA_TASK_ROOT) {
+if (!process.env.NETLIFY && !process.env.AWS_LAMBDA_FUNCTION_NAME && !process.env.LAMBDA_TASK_ROOT && process.env.NODE_ENV !== 'test') {
   setInterval(autoSyncProfiles, 10 * 60 * 1000);
 }
 
@@ -320,7 +321,10 @@ apiRouter.post('/admin/login', (req, res) => {
 apiRouter.get('/profiles', async (req, res) => {
   try {
     if (!isSupabaseConfigured()) {
-      return res.status(500).json({ success: false, error: 'Supabase client not initialized' });
+      return res.status(500).json({ 
+        success: false, 
+        error: `Supabase client not initialized: ${getLastInitError() || 'check environment credentials'}` 
+      });
     }
 
     const profiles = await getSupabaseProfiles();

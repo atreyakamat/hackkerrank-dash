@@ -8,16 +8,22 @@ export const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABAS
 export const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || DEFAULT_SERVICE_ROLE_KEY;
 
 let supabase = null;
+let lastInitError = null;
 
 export function getClient() {
-  if (!supabase && SUPABASE_URL && SUPABASE_KEY) {
+  if (!supabase) {
     try {
       supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-        auth: { persistSession: false }
+        auth: { 
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
       });
-      console.log('[SUPABASE] Initialized Supabase PostgreSQL client:', SUPABASE_URL);
+      lastInitError = null;
     } catch (e) {
-      console.warn('[SUPABASE] Initialization error:', e.message);
+      lastInitError = e.message || String(e);
+      console.warn('[SUPABASE] Initialization error:', lastInitError);
     }
   }
   return supabase;
@@ -28,6 +34,10 @@ getClient();
 
 export function isSupabaseConfigured() {
   return Boolean(getClient());
+}
+
+export function getLastInitError() {
+  return lastInitError;
 }
 
 // Convert snake_case DB row from Supabase to camelCase App Model
