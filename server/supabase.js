@@ -4,8 +4,32 @@ import { createClient } from '@supabase/supabase-js';
 const DEFAULT_SUPABASE_URL = 'https://bjejovuayqtxqhevvvuu.supabase.co';
 const DEFAULT_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqZWpvdnVheXF0eHFoZXZ2dnV1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzg5NTc3OSwiZXhwIjoyMTAzNDcxNzc5fQ.tZBLhgf0ruk9KwGTsesLj3XLOXumKiM_vwPAjZUx3co';
 
+function resolveServiceKey() {
+  const envServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (envServiceKey && envServiceKey.includes('eyJ')) {
+    try {
+      const payload = JSON.parse(Buffer.from(envServiceKey.split('.')[1], 'base64').toString('utf-8'));
+      if (payload.role === 'service_role') return envServiceKey;
+    } catch {
+      return envServiceKey;
+    }
+  }
+
+  const envKey = process.env.SUPABASE_KEY;
+  if (envKey && envKey.includes('eyJ')) {
+    try {
+      const payload = JSON.parse(Buffer.from(envKey.split('.')[1], 'base64').toString('utf-8'));
+      if (payload.role === 'service_role') return envKey;
+    } catch {
+      // not a service_role key
+    }
+  }
+
+  return DEFAULT_SERVICE_ROLE_KEY;
+}
+
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || DEFAULT_SERVICE_ROLE_KEY;
+const SUPABASE_KEY = resolveServiceKey();
 
 let supabase = null;
 
